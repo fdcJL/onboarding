@@ -1,45 +1,45 @@
 <div ng-controller="RegisterController">
-    <div class="m-auto position-absolute d-flex justify-content-center top-50 start-50 translate-middle">
-        <div class="card" style="width: 30rem;">
-          <div class="card-body">
-            <form ng-submit="register(signup)">
-              <h5 class="text-muted text-center fw-normal mb-4">Create a free account.</h5>
-              <div class="mb-3">
-                <div class="row">
-                  <div class="col mb-6">
-                    <label for="firstname" class="form-label">Firstname</label>
-                    <input type="text" ng-model="signup.fname" class="form-control" id="firstname">
-                    <small class="text-danger">{{errorlist.fname}}</small>
-                  </div>
-                  <div class="col mb-6">
-                    <label for="lastname" class="form-label">Lastname</label>
-                    <input type="text" ng-model="signup.lname" class="form-control" id="lastname">
-                    <small class="text-danger">{{errorlist.lname}}</small>
-                  </div>
-                </div>
+  <div class="m-auto position-absolute d-flex justify-content-center top-50 start-50 translate-middle">
+    <div class="card" style="width: 30rem;">
+      <div class="card-body">
+        <form ng-submit="register(signup)">
+          <h5 class="text-muted text-center fw-normal mb-4">Create a free account.</h5>
+          <div class="row mb-4">
+            <div class="col">
+              <div>
+                <label class="form-label">Last name</label>
+                <input type="text" ng-model="signup.fname" class="form-control" />
+                <small class="text-danger">{{errorlist.fname}}</small>
               </div>
-              <div class="mb-3">
-                  <label for="email" class="form-label">Email</label>
-                  <input type="text" ng-model="signup.email" class="form-control" id="email">
-                  <small class="text-danger">{{errorlist.email}}</small>
+            </div>
+            <div class="col">
+              <div>
+                <label class="form-label">Last name</label>
+                <input type="text" ng-model="signup.lname" class="form-control" />
+                <small class="text-danger">{{errorlist.lname}}</small>
               </div>
-              <div class="mb-3">
-                  <label for="password" class="form-label">Password</label>
-                  <input type="password" ng-model="signup.password" class="form-control" id="password">
-                  <small class="text-danger">{{errorlist.password}}</small>
-              </div>
-              <div class="mb-3">
-                  <label for="confirm_password" class="form-label">Confirm Password</label>
-                  <input type="password" ng-model="signup.confirm_password" class="form-control" id="confirm_password">
-                  <small class="text-danger">{{errorlist.confirm_password}}</small>
-              </div>
-              <div class="d-grid col-12 mx-auto">
-                <button type="submit" class="btn btn-success">Register</button>
-              </div>
-  
-              <div class="d-block text-center text-decoration-none mt-3 text-muted">Already a user? <a href="#/login" class="text-decoration-none">Sign in</a> </div>
-            </form>
+            </div>
           </div>
-        </div>
+          <div class="mb-4">
+            <label class="form-label">Email address</label>
+            <input type="email" ng-model="signup.email" class="form-control" />
+            <small class="text-danger">{{errorlist.email}}</small>
+          </div>
+          <div class="mb-4">
+            <label class="form-label">Password</label>
+            <input type="password" ng-model="signup.password" class="form-control" />
+            <small class="text-danger">{{errorlist.password}}</small>
+          </div>
+          <div class="mb-4">
+            <label class="form-label">Confirm Password</label>
+            <input type="password" ng-model="signup.confirm_password" class="form-control" />
+            <small class="text-danger">{{errorlist.confirm_password}}</small>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block mb-4">Register</button>
+          <div class="d-block text-center text-decoration-none mt-3 text-muted">Already a user? <a href="#/login"
+              class="text-decoration-none">Sign in</a> </div>
+        </form>
       </div>
+    </div>
+  </div>
 </div>

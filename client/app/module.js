@@ -85,7 +85,7 @@ app.service('AuthService', ['$http', '$q', '$rootScope', '$window', '$location',
                     icon: "success",
                     title: res.data.message
                 });
-                $location.path('/home');
+                $location.path('/thankyou');
             });
         });
     };
@@ -220,3 +220,25 @@ app.directive('fileUpload', ['$parse', function($parse) {
         }
     };
 }]);
+
+app.directive('perfectScrollbar', function() {
+    return {
+      restrict: 'A',
+      link: function(scope, element, attrs) {
+        const ps = new PerfectScrollbar(element[0]);
+
+        scope.$watch(
+          function() {
+            return element[0].scrollHeight;
+          },
+          function() {
+            ps.update();
+          }
+        );
+
+        scope.$on('$destroy', function() {
+          ps.destroy();
+        });
+      }
+    };
+});

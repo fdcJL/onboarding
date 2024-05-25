@@ -1,0 +1,115 @@
+<div ng-controller="ProfileController">
+    <div ng-include="templateUrl"></div>
+
+    <section style="background-color: #eee;">
+        <div class="container mt-5 pt-5">
+            <div class="row">
+                <div class="col">
+                    <nav aria-label="breadcrumb" class="bg-body-tertiary rounded-3 p-3 mb-4">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="#">Home</a></li>
+                            <li class="breadcrumb-item" aria-current="page">Profile</li>
+                            <li class="breadcrumb-item active" aria-current="page">Edit Profile</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <div class="me-auto p-2">Account Details
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <div class="mb-4">
+                                        <img ng-src="{{ profile }}" alt="avatar" class="rounded-circle img-fluid"
+                                            style="width: 150px;">
+                                    </div>
+                                    <div class="upload-button">
+                                        <label for="file-upload">
+                                            <btutton type="button" class="btn text-white"
+                                                style="background-color: #55acee;">
+                                                <i class="fas fa-camera me-2"></i>Upload Pic
+                                            </btutton>
+                                        </label>
+                                        <input id="file-upload" type="file" file-upload ng-model="profile"
+                                            style="display:none;">
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <form ng-submit="update(info)">
+                                        <div class="row gx-3 mb-3">
+                                            <div class="col-md-6">
+                                                <label class="small mb-1" for="inputFirstName">First name</label>
+                                                <input class="form-control" id="inputFirstName" type="text"
+                                                    placeholder="Enter your first name" ng-value="user.fname"
+                                                    ng-model="info.fname">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="small mb-1" for="inputLastName">Last name</label>
+                                                <input class="form-control" id="inputLastName" type="text"
+                                                    placeholder="Enter your last name" ng-value="user.lname"
+                                                    ng-model="info.lname">
+                                            </div>
+                                        </div>
+                                        <div class="row gx-3 mb-3">
+                                            <div class="col-md-6">
+                                                <div>
+                                                    <label class="small mb-1" for="inputFirstName">Gender</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" ng-model="info.gender" type="radio"
+                                                        name="gender" id="male" value="Male"
+                                                        ng-checked="user.gender === 'Male'" />
+                                                    <label class="form-check-label" for="inlineRadio1">Male</label>
+                                                </div>
+
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" ng-model="info.gender" type="radio"
+                                                        name="gender" id="female" value="Female"
+                                                        ng-checked="user.gender === 'Female'" />
+                                                    <label class="form-check-label" for="inlineRadio2">Female</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="small mb-1" for="inputLastName">Birthday</label>
+                                                <input type="text" datepickers ng-value="user.bdate"
+                                                    placeholder="Enter your Birthdate" ng-model="info.bdate"
+                                                    class="form-control" id="inputBirthday" />
+                                            </div>
+                                        </div>
+                                        <div class="row gx-3 mb-3">
+                                            <div class="col-md-6">
+                                                <label class="small mb-1" for="inputEmail">Email Address</label>
+                                                <input class="form-control" id="inputEmail" type="email"
+                                                    placeholder="Enter your Email Address" ng-value="user.email"
+                                                    ng-model="info.email">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="small mb-1" for="inputPosition">Position</label>
+                                                <input class="form-control" id="inputPosition" type="text"
+                                                    placeholder="Enter your Position" ng-value="user.position"
+                                                    ng-model="info.position">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="small mb-1">Hubby</label>
+                                            <textarea class="form-control" ng-value="user.hubby" ng-model="info.hubby"
+                                                rows="3"></textarea>
+                                        </div>
+                                        <button class="btn btn-success float-end" type="submit">Update</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>

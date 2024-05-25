@@ -38,10 +38,6 @@ class User extends Model {
                 'message' => 'Password is required',
                 'required' => true
             ),
-            'length' => array(
-                'rule' => array('between', 5, 20),
-                'message' => 'Password must be between 5 and 20 characters'
-            )
         ),
         'confirm_password' => array(
             'required' => array(
@@ -53,14 +49,22 @@ class User extends Model {
                 'rule' => array('matchPasswords'),
                 'message' => 'Passwords do not match'
             ),
-            'length' => array(
-                'rule' => array('between', 5, 20),
-                'message' => 'Password must be between 5 and 20 characters'
-            )
         ),
         'bdate' => array(
             'valid' => array(
                 'message' => 'Birdate is Required!',
+                'allowEmpty' => true,
+            )
+        ),
+        'gender' => array(
+            'valid' => array(
+                'message' => 'Gender is Required!',
+                'allowEmpty' => true,
+            )
+        ),
+        'position' => array(
+            'valid' => array(
+                'message' => 'Position is Required!',
                 'allowEmpty' => true,
             )
         ),
@@ -76,6 +80,13 @@ class User extends Model {
                 'message' => 'Profile Picture is Required!',
                 'allowEmpty' => true,
             )
+        ),
+        'last_login' => array(
+            'validDateTime' => array(
+                'rule' => array('datetime'),
+                'message' => 'Please enter a valid datetime.'
+            ),
+            'allowEmpty' => true
         ),
     );
 
@@ -95,6 +106,14 @@ class User extends Model {
                 $this->data[$this->alias]['password']
             );
         }
+
+        $ipAddress = env('REMOTE_ADDR');
+
+        if (empty($this->data[$this->alias]['id'])) {
+            $this->data[$this->alias]['created_ip'] = $ipAddress;
+        }
+        $this->data[$this->alias]['modified_ip'] = $ipAddress;
+
         return true;
     }
 }

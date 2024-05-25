@@ -54,7 +54,7 @@ app.config(['$controllerProvider','$interpolateProvider', '$httpProvider', '$rou
             }
         })
         .when('/message', {
-            templateUrl: './views/pages/message.html',
+            templateUrl: './views/pages/message/message.html',
             resolve: {
                 load: ['$ocLazyLoad', function($ocLazyLoad) {
                     return $ocLazyLoad.load('controller/MessageController.js');
@@ -63,7 +63,16 @@ app.config(['$controllerProvider','$interpolateProvider', '$httpProvider', '$rou
             }
         })
         .when('/profile', {
-            templateUrl: './views/pages/profile.html',
+            templateUrl: './views/pages/profile/profile.html',
+            resolve: {
+                load: ['$ocLazyLoad', function($ocLazyLoad) {
+                    return $ocLazyLoad.load('controller/ProfileController.js');
+                }],
+                auth: authenticated
+            }
+        })
+        .when('/profile/editprofile', {
+            templateUrl: './views/pages/profile/editprofile.html',
             resolve: {
                 load: ['$ocLazyLoad', function($ocLazyLoad) {
                     return $ocLazyLoad.load('controller/ProfileController.js');

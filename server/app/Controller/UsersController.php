@@ -101,8 +101,7 @@ class UsersController extends ApiController {
         $user_details = $this->User->findById($user['id']);
         unset($user_details['User']['password']);
         $this->response->statusCode(200);
-        $this->response->body(json_encode($user));
-        return $this->response;
+        return $this->response->body(json_encode($user));
     }
 
     public function edit(){
@@ -115,21 +114,49 @@ class UsersController extends ApiController {
 
         if ($this->request->is('put')) {
             
-            if (!empty($param['User']['profile_pic'])) {
-                // Decode base64 data
-                $base64data = $param['User']['profile_pic'];
+            if (!empty($param['User']['profile'])) {
+                $base64data = $param['User']['profile'];
                 $encodedImageData = substr($base64data, strpos($base64data, ',') + 1);
                 $decodedImageData = base64_decode($encodedImageData);
-    
-                $filename = 'profile_' . uniqid() . '.jpg';
-    
-                $uploadPath = WWW_ROOT . 'img/profile/' . $filename;
-                if (file_put_contents($uploadPath, $decodedImageData)) {
-                    $param['User']['profile_pic'] = $filename;
+            
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->buffer($decodedImageData);
+            
+                $allowedExtensions = [
+                    'image/jpeg' => 'jpg',
+                    'image/gif' => 'gif',
+                    'image/png' => 'png',
+                ];
+            
+                if (isset($allowedExtensions[$mimeType])) {
+                    $fileExtension = $allowedExtensions[$mimeType];
+
+                    $fileExist = $user['profile'];
+                    $deleteFile = WWW_ROOT . 'img/profile/' . $fileExist;
+
+                    if (file_exists($deleteFile) && $user['profile'] !== 'default.webp') {
+                        unlink($deleteFile);
+                    }
+
+                    $filename = 'profile_' . uniqid() . '.' . $fileExtension;
+                    $uploadPath = WWW_ROOT . 'img/profile/' . $filename;
+                    
+                    if (file_put_contents($uploadPath, $decodedImageData)) {
+                        $param['User']['profile'] = $filename;
+                    } else {
+                        $response = [
+                            'status' => 400,
+                            'message' => "Failed to upload profile picture",
+                            'success' => false,
+                        ];
+                        $this->response->statusCode($response['status']);
+                        $this->response->body(json_encode($response));
+                        return $this->response;
+                    }
                 } else {
                     $response = [
                         'status' => 400,
-                        'message' => "Failed to upload profile picture",
+                        'message' => "Invalid file format. Only .jpg, .gif, and .png files are allowed.",
                         'success' => false,
                     ];
                     $this->response->statusCode($response['status']);
@@ -137,7 +164,7 @@ class UsersController extends ApiController {
                     return $this->response;
                 }
             }
-
+            
 
             if($this->User->save($param, array('validate' => false))){
                 $this->Session->write('Auth.User', array_merge($user, $param['User']));
@@ -160,17 +187,31 @@ class UsersController extends ApiController {
         }
 
         $this->response->statusCode($response['status']);
-        $this->response->body(json_encode($response));
-        return $this->response;
+        return $this->response->body(json_encode($response));
     }
 
     public function logout(){
-        $this->Session->destroy();
-        $response = [
-            'success' => true,
-            'message' => 'Logged out successfully'
-        ];
-        $this->response->statusCode(200);
+        $user = $this->Session->read('Auth.User');
+
+        if ($user) {
+            $this->User->id = $user['id'];
+            $this->User->saveField('last_login', date('Y-m-d H:i:s'));
+            $this->Session->destroy();
+
+            $response = [
+                'status' => 200,
+                'success' => true,
+                'message' => 'Logged out successfully'
+            ];
+        }else {
+            $response = [
+                'status' => 500,
+                'success' => false,
+                'message' => 'User not found in session'
+            ];
+        }
+
+        $this->response->statusCode($response['status']);
         return $this->response->body(json_encode($response));
     }
 }
