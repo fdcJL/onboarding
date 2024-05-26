@@ -1,6 +1,6 @@
 const notauthenticated = ['$q', '$location', function($q, $location) {
     var deferred = $q.defer();
-    var token = sessionStorage.getItem('token');
+    var token = localStorage.getItem('token');
 
     if (token) {
         deferred.reject();
@@ -14,7 +14,7 @@ const notauthenticated = ['$q', '$location', function($q, $location) {
 
 const authenticated = ['$q', '$location', function($q, $location) {
     var deferred = $q.defer();
-    var token = sessionStorage.getItem('token');
+    var token = localStorage.getItem('token');
 
     if (token) {
         deferred.resolve();

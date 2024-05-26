@@ -14,13 +14,13 @@ app.appControl('ProfileController',['$scope', '$rootScope', '$http', '$location'
                 User: info,
             };
 
-            console.log(urlData);
-
             AuthService.update(urlData).then(function () {
                 $location.path('/profile');
                 $scope.user = $rootScope.user;
             }, function (error) {
                 $scope.errorlist = error.validation;
+
+                console.log($scope.errorlist);
             });
         }
     };

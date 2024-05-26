@@ -1,10 +1,10 @@
 <style>
-    #chat3 .form-control {
+    /* #chat3 .form-control {
         border-color: transparent;
-    }
+    } */
 
     #chat3 .form-control:focus {
-        border-color: transparent;
+        /* border-color: transparent; */
         box-shadow: inset 0px 0px 0px 1px transparent;
     }
 
@@ -36,7 +36,7 @@
                     <div class="card" id="chat3" style="border-radius: 15px;">
                         <div class="card-header">
                             <div class="me-auto p-2">ChatBox 
-                                <a href="" ng-click="composemessage()" class="btn btn-secondary float-end">Compose Message</a>
+                                <a href="" ng-click="messageComponents('sendmessage')" class="btn btn-secondary float-end">Send Message</a>
                             </div>
                         </div>
                         <div class="card-body">
@@ -57,7 +57,7 @@
                                         <div perfect-scrollbar style="position: relative; height: 400px">
                                             <ul class="list-unstyled mb-0">
                                                 <li class="p-2 border-bottom">
-                                                    <a href="" ng-click="chatbox()" class="d-flex justify-content-between">
+                                                    <a href="" ng-click="messageComponents('chatbox')" class="d-flex justify-content-between">
                                                         <div class="d-flex flex-row">
                                                             <div>
                                                                 <img ng-src="{{ profile }}"

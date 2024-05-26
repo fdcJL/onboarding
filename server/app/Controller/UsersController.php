@@ -166,7 +166,7 @@ class UsersController extends ApiController {
             }
             
 
-            if($this->User->save($param, array('validate' => false))){
+            if($this->User->save($param, array('fieldList' => array('email')))){
                 $this->Session->write('Auth.User', array_merge($user, $param['User']));
                 $response = [
                     'status'=> 201,
@@ -175,10 +175,12 @@ class UsersController extends ApiController {
                     'user' => array_merge($user, $param['User'])
                 ];
             }else {
+                $errors = $this->User->validationErrors;
                 $response = [
                     'status' => 400,
                     'message' => "Failed to update profile details",
                     'success' => false,
+                    'errors' => $errors
                 ];
             }
         } else {

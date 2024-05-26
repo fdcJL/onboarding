@@ -41,8 +41,8 @@
 	Router::connect('/api/user', array('controller' => 'users', 'action' => 'user', 'auth' => true));
 	Router::connect('/api/edit', array('controller' => 'users', 'action' => 'edit', 'auth' => true));
 
-	// Router::connect('/api/:controller', array('action' => 'index', 'auth' => true));
-	// Router::connect('/api/:controller/:action/*', array('auth' => true));
+	Router::connect('/api/:controller', array('action' => 'index', 'auth' => true));
+	Router::connect('/api/:controller/:action/*', array('auth' => true));
 
 /**
  * Load all plugin routes. See the CakePlugin documentation on

@@ -25,7 +25,7 @@ class User extends Model {
             ),
             'unique' => array(
                 'rule' => 'isUnique',
-                'message' => 'This email is already in use!',
+                'message' => 'The email address is already in use. Please use a different email address.',
             ),
             'email' => array(
                 'rule' => 'email',
@@ -116,4 +116,15 @@ class User extends Model {
 
         return true;
     }
+
+    public $hasMany = [
+        'SentMessages' => [
+            'className' => 'Message',
+            'foreignKey' => 'sender_id'
+        ],
+        'ReceivedMessages' => [
+            'className' => 'Message',
+            'foreignKey' => 'receiver_id'
+        ],
+    ];
 }

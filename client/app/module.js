@@ -8,7 +8,7 @@ app.service('AuthService', ['$http', '$q', '$rootScope', '$window', '$location',
     var userCache = null;
     var userPromise = null;
 
-    $rootScope.isLoggedin = $window.sessionStorage.getItem("token") || false;
+    $rootScope.isLoggedin = $window.localStorage.getItem("token") || false;
     $rootScope.authUser = null;
 
     // Mutations
@@ -43,7 +43,7 @@ app.service('AuthService', ['$http', '$q', '$rootScope', '$window', '$location',
     };
     service.login = function (signin) {
         return $http.post(apiUrl+ 'login', signin).then(function (res) {
-            $window.sessionStorage.setItem('token', res.data.token);
+            $window.localStorage.setItem('token', res.data.token);
             service.setAuthenticate(res.data.token);
             return service.fetchUser().then(function () {
                 const Toast = Swal.mixin({
@@ -67,7 +67,7 @@ app.service('AuthService', ['$http', '$q', '$rootScope', '$window', '$location',
     };
     service.register = function (signup) {
         return $http.post(apiUrl+ "register", signup).then(function (res) {
-            $window.sessionStorage.setItem("token", res.data.token);
+            $window.localStorage.setItem("token", res.data.token);
             service.setAuthenticate(res.data.token);
             return service.fetchUser().then(function () {
                 const Toast = Swal.mixin({
@@ -91,7 +91,7 @@ app.service('AuthService', ['$http', '$q', '$rootScope', '$window', '$location',
     };
     service.logout = function () {
         return $http.get(apiUrl+"logout").then(function () {
-            $window.sessionStorage.removeItem("token");
+            $window.localStorage.removeItem("token");
             service.setUser(null);
             $location.path('/login');
         });
@@ -133,7 +133,7 @@ app.factory('httpInterceptor', ['$q', '$location', '$window', function($q, $loca
     return {
         request: function(config) {
         
-            config.headers.Authorization = 'Bearer ' + sessionStorage.getItem("token");
+            config.headers.Authorization = 'Bearer ' + localStorage.getItem("token");
 
             return config;
         },
@@ -156,7 +156,7 @@ app.factory('httpInterceptor', ['$q', '$location', '$window', function($q, $loca
                     }
                     break;
                 case 401:
-                    $window.sessionStorage.removeItem('token');
+                    $window.localStorage.removeItem('token');
                     $location.path("/login");
                     break;
                 default:
@@ -240,5 +240,55 @@ app.directive('perfectScrollbar', function() {
           ps.destroy();
         });
       }
+    };
+});
+
+app.directive("select2", function () {
+    return {
+        restrict: "A",
+        require: "ngModel",
+        link: function (scope, elem, attrs, ngModelCtrl) {
+            function formatState(state) {
+                if (!state.id) {
+                    return state.text;
+                }
+                var imageUrl = $(state.element).data('image');
+                if(imageUrl){
+                    var $state = $(
+                        '<span><img src="' + $(state.element).data('image') + '" class="img-flag" style="width: 30px;height: 30px;margin-right: 10px;" /> ' + state.text + '</span>'
+                    );
+                    return $state;
+                }else{
+                    return state.text;
+                }
+            }
+
+            $(elem).select2({
+                placeholder: attrs.placeholder || attrs.dataPlaceholder,
+                allowClear: true,
+                templateResult: formatState,
+                // templateSelection: formatState
+            });
+
+            $(elem).on('select2:select', function (e) {
+                scope.$apply(function () {
+                    ngModelCtrl.$setViewValue(e.params.data.id);
+                });
+            });
+
+            $(elem).on('select2:unselect', function () {
+                scope.$apply(function () {
+                    ngModelCtrl.$setViewValue(null);
+                });
+            });
+
+            scope.$watch(attrs.ngModel, function (newVal) {
+                if (newVal === undefined || newVal === null) {
+                    $(elem).val(null).trigger('change');
+                } else {
+                    $(elem).val(newVal).trigger('change');
+                }
+            });
+        }
     };
 });
