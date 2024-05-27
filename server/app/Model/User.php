@@ -7,21 +7,21 @@ class User extends Model {
             'required' => array(
                 'rule' => 'notBlank',
                 'message' => 'Firstname is Required!',
-                'required' => true
+                // 'required' => true
             )
         ),
         'lname' => array(
             'required' => array(
                 'rule' => 'notBlank',
                 'message' => 'Lastname is Required!',
-                'required' => true
+                // 'required' => true
             )
         ),
         'email' => array(
             'required' => array(
                 'rule' => 'notBlank',
                 'message' => 'Email is Required!',
-                'required' => true,
+                // 'required' => true
             ),
             'unique' => array(
                 'rule' => 'isUnique',
@@ -36,14 +36,14 @@ class User extends Model {
             'required' => array(
                 'rule' => 'notBlank',
                 'message' => 'Password is required',
-                'required' => true
+                // 'required' => true
             ),
         ),
         'confirm_password' => array(
             'required' => array(
                 'rule' => 'notBlank',
                 'message' => 'Please confirm your password',
-                'required' => true
+                // 'required' => true
             ),
             'matchPasswords' => array(
                 'rule' => array('matchPasswords'),

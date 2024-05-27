@@ -3,15 +3,24 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
 
     $scope.messageTemplate = 'views/pages/message/components/sendmessage.html';
     
-    $scope.messageComponents = function(template){
+    $scope.messageComponents = function(template, room){
         $scope.messageTemplate = 'views/pages/message/components/' + template + '.html';
+
+        if(template == 'chatbox'){
+            $scope.roomConvo(room);
+        }
     }
 
-    $scope.submitMessage = function(send){
+    $scope.messageConvo = function(send){
         $http.get(apiUrl+'message').then(function (res) {
-            console.log(res);
+            var data = res.data.result
+            $scope.message = data;
         });
     }
 
-    $scope.submitMessage();
+    $scope.roomConvo = function(room){
+        console.log(room);   
+    }
+
+    $scope.messageConvo();
 }]);

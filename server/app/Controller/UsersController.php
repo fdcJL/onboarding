@@ -97,9 +97,13 @@ class UsersController extends ApiController {
     }
 
     public function user() {
+
         $user = $this->Session->read('Auth.User');
         $user_details = $this->User->findById($user['id']);
         unset($user_details['User']['password']);
+
+        $user['fname'] = ucwords($user['fname']);
+        $user['lname'] = ucwords($user['lname']);
         $this->response->statusCode(200);
         return $this->response->body(json_encode($user));
     }

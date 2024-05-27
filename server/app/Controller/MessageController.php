@@ -1,29 +1,45 @@
 <?php
 App::uses('ApiController', 'Controller');
+App::uses('TimeHelper', 'Lib');
 
 class MessageController extends ApiController {
 
-    public $uses = array('User', 'Conversation', 'Message');
+    public $helpers = array('Time'); 
+    public $uses = array('User', 'Conversation','Message', 'Room');
 
     public function index() {
         $user = $this->Session->read('Auth.User');
 
-        $sql = "SELECT 
-            IF(receiver_id = '".$user['id']."', b.fname, (SELECT fname FROM users WHERE id = receiver_id)) AS firstname, 
-            IF(receiver_id = '".$user['id']."', b.lname, (SELECT lname FROM users WHERE id = receiver_id)) AS lastname
-        FROM messages a 
-        LEFT JOIN users b ON a.sender_id = b.id
-        WHERE (sender_id = '".$user['id']."' OR receiver_id = '".$user['id']."') 
-        GROUP BY convo_id";
+        $sql = "
+        SELECT m.room_id as room_id,
+            IF(m.sender_id = {$user['id']}, (SELECT profile as profile FROM users WHERE id = m.receiver_id), (SELECT profile as profile FROM users WHERE id = m.sender_id)) as profile,
+            IF(m.sender_id = {$user['id']}, (SELECT CONCAT(fname,' ',lname) as fullname FROM users WHERE id = m.receiver_id), (SELECT CONCAT(fname,' ',lname) as fullname FROM users WHERE id = m.sender_id)) as fullname,
+            (SELECT IF(sender_id = {$user['id']}, CONCAT('me:',' ',content), content) as content FROM messages WHERE id = max(c.latest_message_id)) as content,
+            (SELECT created FROM messages WHERE id = max(c.latest_message_id)) as created,
+            (SELECT count(status) FROM messages WHERE room_id = c.room_id and receiver_id = {$user['id']} and status = 0) as countunreadmessage
+        FROM messages m left join conversations c on m.id = c.latest_message_id 
+        WHERE (m.sender_id = {$user['id']} OR receiver_id = {$user['id']})
+        GROUP BY m.room_id";
 
         $messages = $this->Message->query($sql);
 
         $mes = [];
 
         foreach($messages as $message){
+
+            $TimeHelper = new TimeHelper(new View());
+            $created_timestamp = strtotime($message[0]['created']);
+            $created_ago = $TimeHelper->timeAgo($created_timestamp);
+
+            $fullname = ucwords($message[0]['fullname']);
+
             $mes[] = array(
-                'fname' => $message[0]['firstname'],
-                'lname' => $message[0]['lastname'],
+                'room_id' => $message['m']['room_id'],
+                'fullname' => $fullname,
+                'profile' => $message[0]['profile'],
+                'content' => $message[0]['content'],
+                'created' => $created_ago,
+                'count' => $message[0]['countunreadmessage'],
             );
 
         }
