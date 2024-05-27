@@ -170,7 +170,7 @@ class UsersController extends ApiController {
             }
             
 
-            if($this->User->save($param, array('fieldList' => array('email')))){
+            if($this->User->save($param)){
                 $this->Session->write('Auth.User', array_merge($user, $param['User']));
                 $response = [
                     'status'=> 201,
