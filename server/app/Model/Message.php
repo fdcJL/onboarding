@@ -10,9 +10,9 @@ class Message extends Model {
     public $timestamps = true;
 
     public $belongsTo = array(
-        'Conversation' => array(
-            'className' => 'Conversation',
-            'foreignKey' => 'convo_id'
+        'Room' => array(
+            'className' => 'Room',
+            'foreignKey' => 'room_id'
         ),
         'User' => array(
             'className' => 'User',
@@ -23,4 +23,11 @@ class Message extends Model {
             'foreignKey' => 'receiver_id'
         )
     );
+
+    public $hasMany = [
+        'LatestMessage' => [
+            'className' => 'Conversation',
+            'foreignKey' => 'sender_id'
+        ],
+    ];
 }

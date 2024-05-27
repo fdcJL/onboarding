@@ -16,7 +16,7 @@
         margin-top: -.75rem;
     }
 </style>
-<div ng-controller="MessageController">
+<div ng-controller="MessageController" ng-init="messageConvo()">
     <div ng-include="templateUrl"></div>
     <section style="background-color: #eee;">
         <div class="container mt-5 pt-5">
@@ -57,7 +57,7 @@
                                         <div perfect-scrollbar style="position: relative; height: 400px">
                                             <ul class="list-unstyled mb-0">
                                                 <li class="p-2 border-bottom" ng-repeat="data in message">
-                                                    <a href="" ng-click="messageComponents('chatbox', data.room_id)" class="d-flex justify-content-between">
+                                                    <a href="" ng-click="messageComponents('chatbox', data)" class="d-flex justify-content-between">
                                                         <div class="d-flex flex-row">
                                                             <div>
                                                                 <img ng-src="{{'../../onboarding/server/app/webroot/img/profile/' + data.profile}}"
