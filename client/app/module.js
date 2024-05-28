@@ -221,25 +221,54 @@ app.directive('fileUpload', ['$parse', function($parse) {
     };
 }]);
 
-app.directive('perfectScrollbar', function() {
+app.directive('perfectScrollbarTop', function($timeout) {
     return {
-      restrict: 'A',
-      link: function(scope, element, attrs) {
-        const ps = new PerfectScrollbar(element[0]);
+        restrict: 'A',
+        link: function(scope, element, attrs) {
+            const ps = new PerfectScrollbar(element[0]);
 
-        scope.$watch(
-          function() {
-            return element[0].scrollHeight;
-          },
-          function() {
-            ps.update();
-          }
-        );
+            scope.$watch(
+                function() {
+                    return element[0].scrollHeight;
+                },
+                function() {
+                    $timeout(function() {
+                        element[0].scrollTop = 0;
+                        ps.update();
+                    }, 0);
+                }
+            );
 
-        scope.$on('$destroy', function() {
-          ps.destroy();
-        });
-      }
+            scope.$on('$destroy', function() {
+                ps.destroy();
+            });
+        }
+    };
+});
+
+
+app.directive('perfectScrollbarBottom', function($timeout) {
+    return {
+        restrict: 'A',
+        link: function(scope, element, attrs) {
+            const ps = new PerfectScrollbar(element[0]);
+
+            scope.$watch(
+                function() {
+                    return element[0].scrollHeight;
+                },
+                function() {
+                    $timeout(function() {
+                        element[0].scrollTop = element[0].scrollHeight;
+                        ps.update();
+                    }, 0);
+                }
+            );
+
+            scope.$on('$destroy', function() {
+                ps.destroy();
+            });
+        }
     };
 });
 
@@ -292,3 +321,31 @@ app.directive("select2", function () {
         }
     };
 });
+
+app.service('spinnerService', function() {
+    var spinnerVisible = false;
+
+    return {
+        show: function() {
+            spinnerVisible = true;
+        },
+        hide: function() {
+            spinnerVisible = false;
+        },
+        isVisible: function() {
+            return spinnerVisible;
+        }
+    };
+});
+
+app.directive('spinner', ['spinnerService', function(spinnerService) {
+    return {
+        restrict: 'E',
+        template: '<div class="spinner" ng-show="isSpinnerVisible()">Loading...</div>',
+        link: function(scope) {
+            scope.isSpinnerVisible = function() {
+                return spinnerService.isVisible();
+            };
+        }
+    };
+}]);

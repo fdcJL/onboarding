@@ -54,7 +54,7 @@
                                             </span>
                                         </div>
 
-                                        <div perfect-scrollbar style="position: relative; height: 400px">
+                                        <div perfect-scrollbar-top style="position: relative; height: 400px">
                                             <ul class="list-unstyled mb-0">
                                                 <li class="p-2 border-bottom" ng-repeat="data in message">
                                                     <a href="" ng-click="messageComponents('chatbox', data)" class="d-flex justify-content-between">
@@ -83,7 +83,61 @@
 
                                 </div>
 
-                                <div class="col-md-6 col-lg-7 col-xl-8" ng-include="messageTemplate"></div>
+                                <!-- <div class="col-md-6 col-lg-7 col-xl-8" ng-include="messageTemplate"> -->
+                                <div class="col-md-6 col-lg-7 col-xl-8">
+                                    <div id="chatbox" ng-if="chatbox">
+                                        <div class="pt-3 pe-3" perfect-scrollbar-bottom style="position: relative; height: 400px">
+                                    
+                                            <div ng-repeat="convo in chatroom">
+                                                <div class="d-flex flex-row justify-content-start" ng-if="convo.you !== null">
+                                                    <img ng-src="{{ '../../onboarding/server/app/webroot/img/profile/' + convo.you_profile }}" alt="avatar 1" style="width: 45px; height: 100%;">
+                                                    <div>
+                                                        <p class="small p-2 ms-3 mb-1 rounded-3" style="background-color: #f5f6f7;">{{ convo.you }}</p>
+                                                        <p class="small ms-3 mb-3 rounded-3 text-muted float-end">{{ convo.created }}</p>
+                                                    </div>
+                                                </div>
+                                            
+                                                <div class="d-flex flex-row justify-content-end" ng-if="convo.me !== null">
+                                                    <div>
+                                                        <p class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">{{ convo.me }}</p>
+                                                        <p class="small me-3 mb-3 rounded-3 text-muted">{{ convo.created }}</p>
+                                                    </div>
+                                                    <img ng-src="{{ '../../onboarding/server/app/webroot/img/profile/' + convo.me_profile }}" alt="avatar 1" style="width: 45px; height: 100%;">
+                                                </div>
+                                            </div>
+                                    
+                                        </div>
+                                    
+                                        <div class="text-muted d-flex justify-content-start align-items-center pe-3 pt-3 mt-2">
+                                            <img ng-src="{{ profile }}" alt="avatar 3" style="width: 40px; height: 100%;">
+                                            <input type="text" ng-model="reply" class="form-control form-control-lg" placeholder="Type message">
+                                            <a class="ms-1 text-muted" href="#!"><i class="fas fa-paperclip"></i></a>
+                                            <a class="ms-3 text-muted" href="#!"><i class="fas fa-smile"></i></a>
+                                            <a class="ms-3" href="" ng-click="replyMessage(reply)"><i class="fas fa-paper-plane"></i></a>
+                                        </div>
+                                    </div>
+
+                                    <div id="sendmessage" ng-show="sendmessage" style="position: relative; height: 500px">
+                                        <!-- <form class="p-5" ng-submit="submitMessage(send, 'chatbox')"> -->
+                                            <p class="h4 mb-4 text-center">Compose Message</p>
+                                            <div class="form-group">
+                                                <div class="mb-3">
+                                                    <label class="small mb-1">Recipient</label>
+                                                    <select class="form-control" select2 ng-model="send.recipient" data-placeholder="Search for a recipient">
+                                                        <option></option>
+                                                        <option ng-repeat="users in allusers | filter: { id: '!' + user.id }" value="{{users.id}}" data-image="../../onboarding/server/app/webroot/img/profile/{{users.profile}}">{{ users.fullname }}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="small mb-1">Message</label>
+                                                    <textarea class="form-control rounded-0" ng-model="send.message" id="defaultForm-message" rows="5" placeholder="Message"></textarea>
+                                                </div>
+                                            </div>
+                                            <!-- <button type="submit" class="btn btn-info btn-block my-4">Send Message</button> -->
+                                            <a href="" ng-click="submitMessage(send, 'chatbox')" class="btn btn-info btn-block my-4">Send Message</a>
+                                        <!-- </form> -->
+                                    </div>
+                                </div>
                             </div>
 
                         </div>

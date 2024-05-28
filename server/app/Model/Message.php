@@ -27,7 +27,7 @@ class Message extends Model {
     public $hasMany = [
         'LatestMessage' => [
             'className' => 'Conversation',
-            'foreignKey' => 'sender_id'
+            'foreignKey' => 'latest_message_id'
         ],
     ];
 }

@@ -62,6 +62,15 @@ app.config(['$controllerProvider','$interpolateProvider', '$httpProvider', '$rou
                 auth: authenticated
             }
         })
+        // .when('/message/send-message', {
+        //     templateUrl: './views/pages/message/components/sendmessage.html',
+        //     resolve: {
+        //         load: ['$ocLazyLoad', function($ocLazyLoad) {
+        //             return $ocLazyLoad.load('controller/MessageController.js');
+        //         }],
+        //         auth: authenticated
+        //     }
+        // })
         .when('/profile', {
             templateUrl: './views/pages/profile/profile.html',
             resolve: {
