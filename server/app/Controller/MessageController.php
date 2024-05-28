@@ -20,38 +20,45 @@ class MessageController extends ApiController {
             (SELECT COUNT(`status`) FROM messages WHERE room_id = m.room_id AND receiver_id = {$user['id']} AND `status` = 0) AS countunreadmessage
         FROM messages m left join conversations c on m.id = c.latest_message_id 
         WHERE (m.sender_id = {$user['id']} OR receiver_id = {$user['id']})
-        GROUP BY m.room_id DESC";
+        GROUP BY m.room_id ORDER BY MAX(m.`created`) DESC";
 
         $messages = $this->Message->query($sql);
 
-        $mes = [];
+        if($messages){
+            $mes = [];
+            foreach($messages as $message){
 
-        foreach($messages as $message){
-
-            $TimeHelper = new TimeHelper(new View());
-            $created_timestamp = strtotime($message[0]['created']);
-            $created_ago = $TimeHelper->timeAgo($created_timestamp);
-
-            $fullname = ucwords($message[0]['fullname']);
-
-            $mes[] = array(
-                'room_id' => $message['m']['room_id'],
-                'user_id' => $message[0]['user_id'],
-                'fullname' => $fullname,
-                'profile' => $message[0]['profile'],
-                'content' => $message[0]['content'],
-                'created' => $created_ago,
-                'count' => $message[0]['countunreadmessage'],
-            );
-
+                $TimeHelper = new TimeHelper(new View());
+                $created_timestamp = strtotime($message[0]['created']);
+                $created_ago = $TimeHelper->timeAgo($created_timestamp);
+    
+                $fullname = ucwords($message[0]['fullname']);
+    
+                $mes[] = array(
+                    'room_id' => $message['m']['room_id'],
+                    'user_id' => $message[0]['user_id'],
+                    'fullname' => $fullname,
+                    'profile' => $message[0]['profile'],
+                    'content' => $message[0]['content'],
+                    'created' => $created_ago,
+                    'count' => $message[0]['countunreadmessage'],
+                );
+    
+            }
+    
+            $response = [
+                'status' => 200,
+                'result' => $mes,
+                'latest_chat' => $this->latest_chat($user['id']),
+                'success' => true,
+            ];
+        }else{
+            $response = [
+                'status' => 400,
+                'message' => "Message not found",
+                'success' => false,
+            ];
         }
-
-        $response = [
-            'status' => 200,
-            'result' => $mes,
-            'latest_chat' => $this->latest_chat($user['id']),
-            'success' => true,
-        ];
 
         $this->response->statusCode($response['status']);
         return $this->response->body(json_encode($response));
@@ -230,8 +237,7 @@ class MessageController extends ApiController {
         $sql1 = "
             SELECT receiver_id as receiver
             FROM messages m
-            WHERE m.room_id = {$param['id']} AND m.sender_id = {$user['id']} GROUP BY m.receiver_id";
-
+            WHERE m.room_id = {$param['id']} AND (m.sender_id = {$user['id']} OR m.receiver_id = {$user['id']}) GROUP BY m.receiver_id";
         $receiver_id = $this->Message->query($sql1);
 
         $response = [
@@ -319,22 +325,22 @@ class MessageController extends ApiController {
 
     protected function latest_chat($id){
 
-        $sql = "
+        $sql_room = "
         SELECT (SELECT room_id FROM messages WHERE created = MAX(m.created)) AS room_id
         FROM messages m
         WHERE (m.sender_id = {$id} OR receiver_id = {$id})";
-        $messages = $this->Message->query($sql);
+        $messages = $this->Message->query($sql_room);
 
         $sql = "
-        SELECT IF(m.sender_id = {$id}, s.`profile`, NULL) AS me_profile,
-            IF(m.sender_id = {$id}, m.content, NULL) AS me,
-            IF(m.receiver_id = {$id}, r.`profile`, NULL) AS you_profile,
-            IF(m.receiver_id = {$id}, m.content, NULL) AS you, m.created
+        SELECT 
+            IF(m.sender_id = {$id}, s.profile, NULL) AS me_profile, 
+            IF(m.sender_id = {$id}, m.content, NULL) AS me, 
+            IF(m.receiver_id = {$id}, s.profile, NULL) AS you_profile, 
+            IF(m.receiver_id = {$id}, m.content, NULL) AS you, 
+            m.created 
         FROM messages m 
-            LEFT JOIN users s ON m.`sender_id` = s.`id` 
-            LEFT JOIN users r ON m.`sender_id` = r.`id`
+            LEFT JOIN users s ON m.sender_id = s.id 
         WHERE m.room_id = {$messages[0][0]['room_id']}";
-
         $chatroom = $this->Message->query($sql);
 
         $convo = [];
@@ -354,14 +360,14 @@ class MessageController extends ApiController {
         }
 
         $sql1 = "
-            SELECT receiver_id as receiver
+            SELECT IF(m.receiver_id = {$id}, m.sender_id, m.receiver_id) as receiver
             FROM messages m
-            WHERE m.room_id = {$messages[0][0]['room_id']} AND m.sender_id = {$id} GROUP BY m.receiver_id";
+            WHERE m.room_id = {$messages[0][0]['room_id']} AND (m.sender_id = {$id} OR m.receiver_id = {$id}) GROUP BY m.receiver_id";
         $receiver_id = $this->Message->query($sql1);
 
         $response = [
             'result' => $convo,
-            'receiver_id' => $receiver_id[0]['m']['receiver'],
+            'receiver_id' => $receiver_id[0][0]['receiver'],
             'room_id' => $messages[0][0]['room_id'],
         ];
         

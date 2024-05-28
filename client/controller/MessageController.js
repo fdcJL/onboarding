@@ -19,6 +19,8 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
         });
     }
 
+    $scope.settings();
+
     $scope.submitMessage = function(send){
         var urlData = {
             'receiver_id' : send.recipient,
@@ -37,12 +39,16 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
     $scope.messageConvo = function(){
         $http.get(apiUrl+'message').then(function (res) {
             var data = res.data
-            $scope.settings();
             $scope.message = data.result;
             $scope.chatbox = true;
             $scope.chatroom = data.latest_chat.result;
             $scope.receiverid = data.latest_chat.receiver_id;
             $scope.roomid = data.latest_chat.room_id;
+        }, function(error){
+            if(error.status === 400){
+                $scope.chatbox = false;
+                $scope.sendmessage = true;
+            }
         });
     }
 
@@ -61,6 +67,7 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
     }
 
     $scope.replyMessage = function(reply){
+
         var urlData = {
             'room_id' : $scope.roomid,
             'receiver_id':$scope.receiverid,
@@ -69,10 +76,7 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
         $http.post(apiUrl+'message/reply', urlData).then(function (res) {
             var data = res.data.result
             $scope.roomConvo(data);
-            $scope.messageConvo()
-            $scope.reply = '';
-
-            console.log($scope.reply);
+            $scope.messageConvo();
         }, function(error){
 
         });
