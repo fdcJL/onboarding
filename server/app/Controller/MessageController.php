@@ -320,10 +320,9 @@ class MessageController extends ApiController {
     protected function latest_chat($id){
 
         $sql = "
-        SELECT m.room_id as room_id
+        SELECT (SELECT room_id FROM messages WHERE created = MAX(m.created)) AS room_id
         FROM messages m
-        WHERE (m.sender_id = {$id} OR receiver_id = {$id})
-        GROUP BY m.room_id DESC LIMIT 1";
+        WHERE (m.sender_id = {$id} OR receiver_id = {$id})";
         $messages = $this->Message->query($sql);
 
         $sql = "
@@ -334,7 +333,7 @@ class MessageController extends ApiController {
         FROM messages m 
             LEFT JOIN users s ON m.`sender_id` = s.`id` 
             LEFT JOIN users r ON m.`sender_id` = r.`id`
-        WHERE m.room_id = {$messages[0]['m']['room_id']}";
+        WHERE m.room_id = {$messages[0][0]['room_id']}";
 
         $chatroom = $this->Message->query($sql);
 
@@ -357,13 +356,13 @@ class MessageController extends ApiController {
         $sql1 = "
             SELECT receiver_id as receiver
             FROM messages m
-            WHERE m.room_id = {$messages[0]['m']['room_id']} AND m.sender_id = {$id} GROUP BY m.receiver_id";
+            WHERE m.room_id = {$messages[0][0]['room_id']} AND m.sender_id = {$id} GROUP BY m.receiver_id";
         $receiver_id = $this->Message->query($sql1);
 
         $response = [
             'result' => $convo,
             'receiver_id' => $receiver_id[0]['m']['receiver'],
-            'room_id' => $messages[0]['m']['room_id'],
+            'room_id' => $messages[0][0]['room_id'],
         ];
         
         return $response;
