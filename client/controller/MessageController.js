@@ -99,7 +99,11 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             },
         };
         $http.delete(apiUrl+'message/delete', urlData).then(function (res) {
-            console.log(res.data);
+            var data = res.data;
+            $scope.chatroom = data.result.latest_chat.result.data;
+            $scope.message = data.result.result;
+            $scope.roomid = data.result.latest_chat.room_id;
+            $scope.receiverid = data.result.latest_chat.receiver_id;
         }, function(error){
 
         });

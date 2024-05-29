@@ -246,7 +246,7 @@ class MessageController extends ApiController {
 
                     $response = [
                         'status' => 200,
-                        'message' => "Message deleted",
+                        'result' => json_decode($this->index()),
                         'success' => true,
                     ];
                 } else {
