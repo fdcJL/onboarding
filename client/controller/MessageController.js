@@ -18,19 +18,24 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.allusers = data.users;
         });
     }
-
     $scope.settings();
 
+    $scope.send = {};
     $scope.submitMessage = function(send){
         var urlData = {
             'receiver_id' : send.recipient,
             'content' : send.message,
         }
         $http.post(apiUrl+'message/sendmessage', urlData).then(function (res) {
+            var data = res.data;
             $scope.chatbox = true;
             $scope.sendmessage = false;
-            $scope.roomConvo(res.data.result);
-            $scope.messageTemplate = 'views/pages/message/components/chatbox.html';
+            $scope.chatroom = data.result.latest_chat.result.data;
+            $scope.message = data.result.result;
+            $scope.send.recipient = '';
+            $scope.send.message = '';
+            $scope.roomid = data.result.latest_chat.room_id;
+            $scope.receiverid = data.result.latest_chat.receiver_id;
         }, function(error){
 
         });
@@ -41,11 +46,11 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             var data = res.data
             $scope.message = data.result;
             $scope.chatbox = true;
-            $scope.chatroom = data.latest_chat.result;
-            $scope.receiverid = data.latest_chat.receiver_id;
+            $scope.chatroom = data.latest_chat.result.data;
             $scope.roomid = data.latest_chat.room_id;
+            $scope.receiverid = data.latest_chat.receiver_id;
         }, function(error){
-            if(error.status === 400){
+            if(error.status === 403){
                 $scope.chatbox = false;
                 $scope.sendmessage = true;
             }
@@ -59,13 +64,14 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             'id': data['room_id'],
         };
         $http.post(apiUrl+'message/chatroom', urlData).then(function (res) {
-            var data = res.data.result
-            $scope.chatroom = data;
+            var data = res.data
+            $scope.chatroom = data.result.data;
         }, function(error){
 
         });
     }
 
+    $scope.chat = {};
     $scope.replyMessage = function(reply){
 
         var urlData = {
@@ -74,9 +80,26 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             'content': reply,
         };
         $http.post(apiUrl+'message/reply', urlData).then(function (res) {
-            var data = res.data.result
-            $scope.roomConvo(data);
-            $scope.messageConvo();
+            var data = res.data;
+            $scope.chatroom = data.result.latest_chat.result.data;
+            $scope.message = data.result.result;
+            $scope.roomid = data.result.latest_chat.room_id;
+            $scope.receiverid = data.result.latest_chat.receiver_id;
+            $scope.chat.reply = '';
+        }, function(error){
+
+        });
+    }
+
+    $scope.removeMessage = function(convo){
+        var urlData = {
+            data: {
+                'id': convo.id,
+                'room_id': convo.room_id
+            },
+        };
+        $http.delete(apiUrl+'message/delete', urlData).then(function (res) {
+            console.log(res.data);
         }, function(error){
 
         });
