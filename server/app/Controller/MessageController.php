@@ -6,62 +6,74 @@ class MessageController extends ApiController {
 
     public $helpers = array('Time'); 
     public $uses = array('User', 'Room','Message', 'Conversation');
-
+    
     public function index() {
-        $user = $this->Session->read('Auth.User');
+        $param = $this->request->input('json_decode', true);
+            $user = $this->Session->read('Auth.User');
 
-        $sql = "
-        SELECT m.room_id as room_id,
-            IF(m.sender_id = {$user['id']}, m.receiver_id, m.sender_id) AS user_id,
-            IF(m.sender_id = {$user['id']}, (SELECT profile as profile FROM users WHERE id = m.receiver_id), (SELECT profile as profile FROM users WHERE id = m.sender_id)) as profile,
-            IF(m.sender_id = {$user['id']}, (SELECT CONCAT(fname,' ',lname) as fullname FROM users WHERE id = m.receiver_id), (SELECT CONCAT(fname,' ',lname) as fullname FROM users WHERE id = m.sender_id)) as fullname,
-            (SELECT IF(sender_id = {$user['id']}, CONCAT('me:',' ',content), content) as content FROM messages WHERE id = max(c.latest_message_id)) as content,
-            (SELECT created FROM messages WHERE id = max(c.latest_message_id)) as created,
-            (SELECT COUNT(`status`) FROM messages WHERE room_id = m.room_id AND receiver_id = {$user['id']} AND `status` = 0) AS countunreadmessage
-        FROM messages m left join conversations c on m.id = c.latest_message_id 
-        WHERE (m.sender_id = {$user['id']} OR receiver_id = {$user['id']})
-        GROUP BY m.room_id ORDER BY MAX(m.`created`) DESC";
+            $limit = $param['pagination']['limit'];
+            $search = "";
 
-        $messages = $this->Message->query($sql);
+            if( !empty( $param['search'] ) ){ $search=" AND (u.fname LIKE '%". $param['search'] ."%' OR u.lname LIKE '%". $param['search'] ."%') "; }
 
-        if($messages){
-            $mes = [];
-            foreach($messages as $message){
+            $sql = "
+            SELECT m.room_id as room_id, u.id as user_id, CONCAT(u.fname,' ',u.lname) as fullname, u.profile as profile,
+                (SELECT IF(sender_id = {$user['id']}, CONCAT('me:',' ',content), content) as content FROM messages WHERE id = c.latest_message_id) as content,
+                (SELECT created FROM messages WHERE id = c.latest_message_id) as created,
+                (SELECT COUNT(`status`) FROM messages WHERE room_id = m.room_id AND receiver_id = {$user['id']} AND `status` = 0) AS countunreadmessage
+            FROM messages m left join conversations c on m.room_id = c.room_id 
+                left join users u on IF(m.sender_id = {$user['id']}, m.receiver_id, m.sender_id) = u.id
+            WHERE (m.sender_id = {$user['id']} OR receiver_id = {$user['id']}) {$search}
+            GROUP BY m.room_id ORDER BY MAX(m.`created`) DESC LIMIT {$limit}";
 
-                $TimeHelper = new TimeHelper(new View());
-                $created_timestamp = strtotime($message[0]['created']);
-                $created_ago = $TimeHelper->timeAgo($created_timestamp);
-    
-                $fullname = ucwords($message[0]['fullname']);
-    
-                $mes[] = array(
-                    'room_id' => $message['m']['room_id'],
-                    'user_id' => $message[0]['user_id'],
-                    'fullname' => $fullname,
-                    'profile' => $message[0]['profile'],
-                    'content' => $message[0]['content'],
-                    'created' => $created_ago,
-                    'count' => $message[0]['countunreadmessage'],
-                );
-    
+            $messages = $this->Message->query($sql);
+
+            if($messages){
+
+                $total = "select room_id from messages where sender_id = {$user['id']} OR receiver_id = {$user['id']} group by room_id";
+                $totalItems = $this->Message->query($total);
+
+                $mes = [];
+                foreach($messages as $message){
+
+                    $TimeHelper = new TimeHelper(new View());
+                    $created_timestamp = strtotime($message[0]['created']);
+                    $created_ago = $TimeHelper->timeAgo($created_timestamp);
+        
+                    $fullname = ucwords($message[0]['fullname']);
+        
+                    $mes[] = array(
+                        'room_id' => $message['m']['room_id'],
+                        'user_id' => $message['u']['user_id'],
+                        'fullname' => $fullname,
+                        'profile' => $message['u']['profile'],
+                        'content' => $message[0]['content'],
+                        'created' => $created_ago,
+                        'count' => $message[0]['countunreadmessage'],
+                    );
+        
+                }
+        
+                $response = [
+                    'status' => 200,
+                    'result' => $mes,
+                    'latest_chat' => $this->latest_chat($user['id']),
+                    'success' => true,
+                    'pagination' => array(
+                        'limit' => (int)$limit,
+                        'total' => count($totalItems),
+                    )
+                ];
+            }else{
+                $response = [
+                    'status' => 403,
+                    'message' => "Message not found",
+                    'success' => false,
+                ];
             }
-    
-            $response = [
-                'status' => 200,
-                'result' => $mes,
-                'latest_chat' => $this->latest_chat($user['id']),
-                'success' => true,
-            ];
-        }else{
-            $response = [
-                'status' => 403,
-                'message' => "Message not found",
-                'success' => false,
-            ];
-        }
 
-        $this->response->statusCode($response['status']);
-        return $this->response->body(json_encode($response));
+            $this->response->statusCode($response['status']);
+            return $this->response->body(json_encode($response));
     }
 
     public function sendmessage() {
@@ -97,6 +109,9 @@ class MessageController extends ApiController {
                     if ($conversation) {
                         $conversation['Conversation']['latest_message_id'] = $lastid;
                         $this->Conversation->save($conversation);
+
+                        $modifiedUpdate = "UPDATE conversations SET modified = NOW() WHERE room_id = {$param['room_id']}";
+                        $this->Message->query($modifiedUpdate);
 
                         $response = [
                             'status' => 201,
@@ -169,12 +184,12 @@ class MessageController extends ApiController {
         $statusUpdate = "UPDATE messages SET status = 1 WHERE room_id = {$param['id']} AND status = 0 AND receiver_id = {$user['id']}";
         $this->Message->query($statusUpdate);
 
-        $convo = $this->conversation($user['id'], $param['id']);
+        $modifiedUpdate = "UPDATE conversations SET modified = NOW() WHERE room_id = {$param['id']}";
+        $this->Message->query($modifiedUpdate);
 
         $response = [
             'status' => 200,
-            'result' => $convo,
-            'receiver_id' => $convo['receiver_id'],
+            'result' => json_decode($this->index()),
             'success' => true,
         ];
 
@@ -271,18 +286,37 @@ class MessageController extends ApiController {
 
     protected function latest_chat($id){
 
-        $sql_room = "
-        SELECT (SELECT room_id FROM messages WHERE created = MAX(m.created)) AS room_id
-        FROM messages m
-        WHERE (m.sender_id = {$id} OR receiver_id = {$id})";
-        $messages = $this->Message->query($sql_room);
+        $modified = $this->Message->find('first', [
+            'conditions' => array(
+                'OR' => [
+                    ['Message.sender_id' => $id],
+                    ['Message.receiver_id' => $id]
+                ]
+            ),
+            'joins' => [
+                [
+                    'table' => 'conversations',
+                    'alias' => 'Conversation',
+                    'type' => 'LEFT',
+                    'conditions' => [
+                        'Conversation.room_id = Message.room_id'
+                    ]
+                ]
+            ],
+            'fields' => [
+                'Message.room_id',
+            ],
+            'order' => ['Conversation.modified' => 'DESC'],
+            'group' => ['Message.room_id'],
+            'recursive' => -1
+        ]);
 
-        $convo = $this->conversation($id, $messages[0][0]['room_id']);
+        $convo = $this->conversation($id, $modified['Message']['room_id']);
 
         $response = [
             'result' => $convo,
             'receiver_id' => $convo['receiver_id'],
-            'room_id' => $messages[0][0]['room_id'],
+            'room_id' => $modified['Message']['room_id'],
         ];
         
         return $response;

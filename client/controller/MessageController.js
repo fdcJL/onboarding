@@ -25,6 +25,7 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
         var urlData = {
             'receiver_id' : send.recipient,
             'content' : send.message,
+            'pagination' : $scope.pagination,
         }
         $http.post(apiUrl+'message/sendmessage', urlData).then(function (res) {
             var data = res.data;
@@ -36,19 +37,31 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.send.message = '';
             $scope.roomid = data.result.latest_chat.room_id;
             $scope.receiverid = data.result.latest_chat.receiver_id;
+            $scope.totalItems = data.result.pagination.total;
         }, function(error){
 
         });
     }
 
+    $scope.pagination = {
+        current: 1,
+        limit: 5
+    };
     $scope.messageConvo = function(){
-        $http.get(apiUrl+'message').then(function (res) {
+        
+        var urlData = {
+            'pagination' : $scope.pagination,
+            'search' : $scope.search_name,
+        };
+
+        $http.post(apiUrl+'message', urlData).then(function (res) {
             var data = res.data
             $scope.message = data.result;
             $scope.chatbox = true;
             $scope.chatroom = data.latest_chat.result.data;
             $scope.roomid = data.latest_chat.room_id;
             $scope.receiverid = data.latest_chat.receiver_id;
+            $scope.totalItems = data.pagination.total;
         }, function(error){
             if(error.status === 403){
                 $scope.chatbox = false;
@@ -56,16 +69,21 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             }
         });
     }
+    $scope.loadMoreMessages = function() {
+        $scope.pagination.limit += 1;
+        $scope.messageConvo();
+    };
 
     $scope.roomConvo = function(data){
         $scope.roomid = data['room_id'];
         $scope.receiverid = data['user_id'];
         var urlData = {
             'id': data['room_id'],
+            'pagination' : $scope.pagination,
         };
         $http.post(apiUrl+'message/chatroom', urlData).then(function (res) {
             var data = res.data
-            $scope.chatroom = data.result.data;
+            $scope.chatroom = data.result.latest_chat.result.data;
         }, function(error){
 
         });
@@ -78,6 +96,7 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             'room_id' : $scope.roomid,
             'receiver_id':$scope.receiverid,
             'content': reply,
+            'pagination' : $scope.pagination,
         };
         $http.post(apiUrl+'message/reply', urlData).then(function (res) {
             var data = res.data;
@@ -95,7 +114,8 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
         var urlData = {
             data: {
                 'id': convo.id,
-                'room_id': convo.room_id
+                'room_id': convo.room_id,
+                'pagination' : $scope.pagination,
             },
         };
         $http.delete(apiUrl+'message/delete', urlData).then(function (res) {

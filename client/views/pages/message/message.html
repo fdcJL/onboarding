@@ -58,11 +58,11 @@
                                     <div class="p-3">
 
                                         <div class="input-group rounded mb-3">
-                                           <input type="search" class="form-control rounded" placeholder="Search"
+                                           <input type="search" class="form-control rounded" ng-model="search_name" placeholder="Search"
                                                 aria-label="Search" aria-describedby="search-addon" />
-                                            <span class="input-group-text border-0" id="search-addon">
+                                            <a href="" class="input-group-text border-0" id="search-addon" ng-click="messageConvo()">
                                                 <i class="fas fa-search"></i>
-                                            </span>
+                                            </a>
                                         </div>
 
                                         <div perfect-scrollbar-top style="position: relative; height: 400px">
@@ -90,6 +90,7 @@
                                             </ul>
                                         </div>
 
+                                        <div class="text-center" ng-if="totalItems > pagination.limit"> <a href="" ng-click="loadMoreMessages()"> Show More </a> </div>
                                     </div>
 
                                 </div>
@@ -148,7 +149,11 @@
                                                     <label class="small mb-1">Recipient</label>
                                                     <select class="form-control" select2 ng-model="send.recipient" data-placeholder="Search for a recipient">
                                                         <option></option>
-                                                        <option ng-repeat="users in allusers | filter: { id: '!' + user.id }" value="{{users.id}}" data-image="../../onboarding/server/app/webroot/img/profile/{{users.profile}}">{{ users.fullname }}</option>
+                                                        <option ng-repeat="users in allusers | filter: { id: '!' + user.id }" 
+                                                            value="{{users.id}}" 
+                                                            data-image="../../onboarding/server/app/webroot/img/profile/{{users.profile}}">
+                                                            {{ users.fullname }}
+                                                        </option>
                                                     </select>
                                                 </div>
                                                 <div class="mb-3">

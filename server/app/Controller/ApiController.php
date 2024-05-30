@@ -39,6 +39,7 @@ class ApiController extends Controller {
     public $components = array(
         'Session',
         'Cookie',
+        'Paginator',
     );
 
     public function beforeFilter() {
