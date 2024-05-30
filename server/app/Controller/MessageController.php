@@ -1,6 +1,8 @@
 <?php
 App::uses('ApiController', 'Controller');
 App::uses('TimeHelper', 'Lib');
+// use GuzzleHttp\Client;
+// use Cake\Log\Log;
 
 class MessageController extends ApiController {
 
@@ -118,6 +120,12 @@ class MessageController extends ApiController {
                             'result' => json_decode($this->index()),
                             'success' => true,
                         ];
+
+                         // Send WebSocket notification
+                        // $this->sendWebSocketMessage([
+                        //     'action' => 'new_message',
+                        //     'data' => $response
+                        // ]);
                     } else {
                         $response = [
                             'status' => 400,
@@ -147,6 +155,12 @@ class MessageController extends ApiController {
                                 'result' => json_decode($this->index()),
                                 'success' => true,
                             ];
+
+                            // Send WebSocket notification
+                            // $this->sendWebSocketMessage([
+                            //     'action' => 'new_message',
+                            //     'data' => $response
+                            // ]);
                         } else {
                             $response = [
                                 'status' => 400,
@@ -221,6 +235,7 @@ class MessageController extends ApiController {
 
                     $response = [
                         'status' => 201,
+                        'sender_id' => $param['sender_id'],
                         'result' => json_decode($this->index()),
                         'success' => true,
                     ];
@@ -366,4 +381,16 @@ class MessageController extends ApiController {
 
         return $data;
     }
+
+    // private function sendWebSocketMessage($msg) {
+    //     $client = new Client();
+    //     try {
+    //         $client->request('POST', 'http://localhost:8080', [
+    //             'json' => $msg
+    //         ]);
+    //     } catch (Exception $e) {
+    //         // Handle the exception if needed
+    //         echo 'Failed to send WebSocket message: ' . $e->getMessage();
+    //     }
+    // }
 }

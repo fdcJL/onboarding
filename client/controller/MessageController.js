@@ -1,5 +1,7 @@
-app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location', '$window', '$timeout', 'AuthService', 'spinnerService', function($scope, $rootScope, $http, $location, $window, $timeout, AuthService, spinnerService){
+app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location', '$window', '$timeout', 'AuthService', 'WebSocketService', function($scope, $rootScope, $http, $location, $window, $timeout, AuthService, WebSocketService){
     $scope.templateUrl = 'views/layout/PagesLayout.html';
+
+    WebSocketService.connect();
 
     $scope.messageComponents = function(template, data){
         if(template == 'chatbox'){
@@ -38,6 +40,15 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.roomid = data.result.latest_chat.room_id;
             $scope.receiverid = data.result.latest_chat.receiver_id;
             $scope.totalItems = data.result.pagination.total;
+
+            WebSocketService.send(JSON.stringify({
+                action: 'reply_message',
+                chatroom: data.result.latest_chat.result.data,
+                message: data.result.result,
+                roomid : data.result.latest_chat.room_id,
+                receiverid : data.result.latest_chat.receiver_id,
+                totalItems : data.result.pagination.total,
+            }));
         }, function(error){
 
         });
@@ -105,6 +116,16 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.roomid = data.result.latest_chat.room_id;
             $scope.receiverid = data.result.latest_chat.receiver_id;
             $scope.chat.reply = '';
+
+            // Notify the WebSocket server
+            WebSocketService.send(JSON.stringify({
+                action: 'reply_message',
+                sender_id: data.sender_id,
+                chatroom: data.result.latest_chat.result.data,
+                message: data.result.result,
+                roomid : data.result.latest_chat.room_id,
+                receiverid : data.result.latest_chat.receiver_id,
+            }));
         }, function(error){
 
         });
@@ -124,8 +145,32 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.message = data.result.result;
             $scope.roomid = data.result.latest_chat.room_id;
             $scope.receiverid = data.result.latest_chat.receiver_id;
+
+            // Notify the WebSocket server
+            WebSocketService.send(JSON.stringify({
+                action: 'remove_message',
+                data: convo.id
+            }));
         }, function(error){
 
         });
     }
+
+    $scope.$on('socket:message', function(event, data) {
+        var messageData = JSON.parse(data);
+        if (messageData.action === 'new_message' || messageData.action === 'reply_message') {
+            // Filter out messages sent by the current user
+            if (messageData.message.sender_id !== AuthService.getUser().id) {
+                $scope.chatroom = messageData.chatroom;
+                $scope.message = messageData.message;
+                $scope.roomid = messageData.roomid;
+                $scope.receiverid = messageData.receiverid;
+                $scope.totalItems = messageData.totalItems;
+    
+                console.log($scope.chatroom);
+            }
+        } else if (messageData.action === 'remove_message') {
+            // Handle message removal in chatroom
+        }
+    })
 }]);
