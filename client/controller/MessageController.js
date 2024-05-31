@@ -39,12 +39,10 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.receiverid = data.result.latest_chat.receiver_id;
             $scope.totalItems = data.result.pagination.total;
 
-            console.log(data.result.websocket);
-
             WebSocketService.send(JSON.stringify({
                 action: 'new_message',
                 chatroom : data.result.latest_chat.result.data,
-                message : data.result.websocket,
+                message : data.websocket,
                 receiverid : $scope.send.recipient,
             }));
 

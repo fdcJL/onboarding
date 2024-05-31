@@ -56,7 +56,6 @@ class MessageController extends ApiController {
             $response = [
                 'status' => 200,
                 'result' => $mes,
-                'websocket' => $this->websocketdata(),
                 'latest_chat' => $this->latest_chat($user['id']),
                 'success' => true,
                 'pagination' => array(
@@ -150,6 +149,7 @@ class MessageController extends ApiController {
                         if ($this->Conversation->save($convo)) {
                             $response = [
                                 'status' => 201,
+                                'websocket' => $this->websocketdata($param['receiver_id']),
                                 'result' => json_decode($this->index()),
                                 'success' => true,
                             ];
@@ -389,19 +389,16 @@ class MessageController extends ApiController {
         return $data;
     }
 
-    protected function websocketdata(){
-
-        $user = $this->Session->read('Auth.User');
-
+    protected function websocketdata($receiver){
         $sql = "
         SELECT u.id as user_id, 
-                m.room_id, 
-                u.profile, CONCAT(u.fname,' ',u.lname) as fullname, 
-                IF(m.sender_id = {$user['id']}, m.content, CONCAT('me: ','', m.content)) as content, 
-	            IF(m.receiver_id = {$user['id']}, 0, count(status)) as countunread, 
-                m.created
-        FROM messages m left join users u on IF(m.sender_id = {$user['id']}, m.receiver_id, m.sender_id) = u.id
-        WHERE (sender_id = {$user['id']} OR receiver_id = {$user['id']}) GROUP BY m.room_id ORDER BY m.created DESC";
+            m.room_id, 
+            u.profile, CONCAT(u.fname,' ',u.lname) as fullname, 
+            IF(m.sender_id = {$receiver}, CONCAT('me: ','', m.content), m.content) as content, 
+            IF(m.receiver_id = {$receiver}, count(status), 0) as countunread, 
+            m.created
+        FROM messages m left join users u on IF(m.sender_id = {$receiver}, m.receiver_id, m.sender_id) = u.id
+        WHERE (sender_id = {$receiver} OR receiver_id = {$receiver}) GROUP BY m.room_id ORDER BY max(m.created) DESC";
 
         $messages = $this->Message->query($sql);
 
