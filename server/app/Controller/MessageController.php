@@ -1,6 +1,8 @@
 <?php
 App::uses('ApiController', 'Controller');
 App::uses('TimeHelper', 'Lib');
+// use GuzzleHttp\Client;
+// use Cake\Log\Log;
 
 class MessageController extends ApiController {
 
@@ -230,6 +232,7 @@ class MessageController extends ApiController {
 
                     $response = [
                         'status' => 201,
+                        'sender_id' => $param['sender_id'],
                         'result' => json_decode($this->index()),
                         'user_id' => $user['id'],
                         'success' => true,
