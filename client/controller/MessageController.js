@@ -1,5 +1,7 @@
-app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location', '$window', '$timeout', 'AuthService', 'spinnerService', function($scope, $rootScope, $http, $location, $window, $timeout, AuthService, spinnerService){
+app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location', '$window', '$timeout', 'AuthService', 'WebSocketService', function($scope, $rootScope, $http, $location, $window, $timeout, AuthService, WebSocketService){
     $scope.templateUrl = 'views/layout/PagesLayout.html';
+
+    WebSocketService.connect();
 
     $scope.messageComponents = function(template, data){
         if(template == 'chatbox'){
@@ -33,11 +35,21 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.sendmessage = false;
             $scope.chatroom = data.result.latest_chat.result.data;
             $scope.message = data.result.result;
-            $scope.send.recipient = '';
-            $scope.send.message = '';
             $scope.roomid = data.result.latest_chat.room_id;
             $scope.receiverid = data.result.latest_chat.receiver_id;
             $scope.totalItems = data.result.pagination.total;
+
+            console.log(data.result.websocket);
+
+            WebSocketService.send(JSON.stringify({
+                action: 'new_message',
+                chatroom : data.result.latest_chat.result.data,
+                message : data.result.websocket,
+                receiverid : $scope.send.recipient,
+            }));
+
+            $scope.send.recipient = '';
+            $scope.send.message = '';
         }, function(error){
 
         });
@@ -48,7 +60,6 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
         limit: 5
     };
     $scope.messageConvo = function(){
-        
         var urlData = {
             'pagination' : $scope.pagination,
             'search' : $scope.search_name,
@@ -62,6 +73,7 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.roomid = data.latest_chat.room_id;
             $scope.receiverid = data.latest_chat.receiver_id;
             $scope.totalItems = data.pagination.total;
+            $scope.user = $rootScope.user;
         }, function(error){
             if(error.status === 403){
                 $scope.chatbox = false;
@@ -75,6 +87,8 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
     };
 
     $scope.roomConvo = function(data){
+        console.log(data);
+
         $scope.roomid = data['room_id'];
         $scope.receiverid = data['user_id'];
         var urlData = {
@@ -105,6 +119,13 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.roomid = data.result.latest_chat.room_id;
             $scope.receiverid = data.result.latest_chat.receiver_id;
             $scope.chat.reply = '';
+
+             WebSocketService.send(JSON.stringify({
+                action: 'reply_message',
+                chatroom : data.result.latest_chat.result.data,
+                message : data.result.websocket,
+                receiverid : data.result.latest_chat.receiver_id,
+            }));
         }, function(error){
 
         });
@@ -128,4 +149,44 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
 
         });
     }
+
+    $scope.$on('socket:message', function(event, data) {
+        var message = JSON.parse(data);
+        $scope.user = $rootScope.user;
+
+        if($scope.user.id === message.receiverid){
+            // $scope.chatroom = [];
+            $scope.message = [];
+
+            angular.forEach(message.message, function(value, key) {
+                var data = {
+                    'user_id' : value.user_id,
+                    'room_id' : value.room_id,
+                    'fullname' : value.fullname,
+                    'profile' : value.profile,
+                    'content' : value.content,
+                    'count' : value.count,
+                };
+
+                $scope.message.push(data);
+            });
+
+            console.log($scope.message);
+
+            // angular.forEach(message.chatroom, function(value, key) {
+            //     var data = {
+            //         'you' : value.me,
+            //         'you_profile' : value.me_profile,
+            //         'me' : value.you,
+            //         'me_profile' : value.you_profile,
+            //         'created' : value.created,
+            //         'id' : value.id,
+            //         'room_id' : value.room_id,
+            //         'user_id' : value.user_id,
+            //     }
+            //     $scope.chatroom.push(data);
+            // });
+
+        }
+    })
 }]);

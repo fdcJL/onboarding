@@ -9,71 +9,70 @@ class MessageController extends ApiController {
     
     public function index() {
         $param = $this->request->input('json_decode', true);
-            $user = $this->Session->read('Auth.User');
+        $user = $this->Session->read('Auth.User');
 
-            $limit = $param['pagination']['limit'];
-            $search = "";
+        $limit = $param['pagination']['limit'];
+        $search = "";
 
-            if( !empty( $param['search'] ) ){ $search=" AND (u.fname LIKE '%". $param['search'] ."%' OR u.lname LIKE '%". $param['search'] ."%') "; }
+        if( !empty( $param['search'] ) ){ $search=" AND (u.fname LIKE '%". $param['search'] ."%' OR u.lname LIKE '%". $param['search'] ."%') "; }
 
-            $sql = "
-            SELECT m.room_id as room_id, u.id as user_id, CONCAT(u.fname,' ',u.lname) as fullname, u.profile as profile,
-                (SELECT IF(sender_id = {$user['id']}, CONCAT('me:',' ',content), content) as content FROM messages WHERE id = c.latest_message_id) as content,
-                (SELECT created FROM messages WHERE id = c.latest_message_id) as created,
-                (SELECT COUNT(`status`) FROM messages WHERE room_id = m.room_id AND receiver_id = {$user['id']} AND `status` = 0) AS countunreadmessage
-            FROM messages m left join conversations c on m.room_id = c.room_id 
-                left join users u on IF(m.sender_id = {$user['id']}, m.receiver_id, m.sender_id) = u.id
-            WHERE (m.sender_id = {$user['id']} OR receiver_id = {$user['id']}) {$search}
-            GROUP BY m.room_id ORDER BY MAX(m.`created`) DESC LIMIT {$limit}";
+        $sql = "
+        SELECT u.id as user_id, m.room_id, u.profile, CONCAT(u.fname,' ',u.lname) as fullname, 
+            IF(m.sender_id = {$user['id']}, CONCAT('me: ','', m.content), m.content) as content, 
+            IF(m.receiver_id = {$user['id']}, count(status), 0) as countunread, m.created
+        FROM messages m left join users u on IF(m.sender_id = {$user['id']}, m.receiver_id, m.sender_id) = u.id
+        WHERE (sender_id = {$user['id']} OR receiver_id = {$user['id']}) {$search} GROUP BY m.room_id ORDER BY m.created DESC LIMIT {$limit}";
 
-            $messages = $this->Message->query($sql);
+        $messages = $this->Message->query($sql);
 
-            if($messages){
+        if($messages){
 
-                $total = "select room_id from messages where sender_id = {$user['id']} OR receiver_id = {$user['id']} group by room_id";
-                $totalItems = $this->Message->query($total);
+            $total = "select room_id from messages where sender_id = {$user['id']} OR receiver_id = {$user['id']} group by room_id";
+            $totalItems = $this->Message->query($total);
 
-                $mes = [];
-                foreach($messages as $message){
+            $mes = [];
+            foreach($messages as $message){
 
-                    $TimeHelper = new TimeHelper(new View());
-                    $created_timestamp = strtotime($message[0]['created']);
-                    $created_ago = $TimeHelper->timeAgo($created_timestamp);
-        
-                    $fullname = ucwords($message[0]['fullname']);
-        
-                    $mes[] = array(
-                        'room_id' => $message['m']['room_id'],
-                        'user_id' => $message['u']['user_id'],
-                        'fullname' => $fullname,
-                        'profile' => $message['u']['profile'],
-                        'content' => $message[0]['content'],
-                        'created' => $created_ago,
-                        'count' => $message[0]['countunreadmessage'],
-                    );
-        
-                }
-        
-                $response = [
-                    'status' => 200,
-                    'result' => $mes,
-                    'latest_chat' => $this->latest_chat($user['id']),
-                    'success' => true,
-                    'pagination' => array(
-                        'limit' => (int)$limit,
-                        'total' => count($totalItems),
-                    )
-                ];
-            }else{
-                $response = [
-                    'status' => 403,
-                    'message' => "Message not found",
-                    'success' => false,
-                ];
+                $TimeHelper = new TimeHelper(new View());
+                $created_timestamp = strtotime($message['m']['created']);
+                $created_ago = $TimeHelper->timeAgo($created_timestamp);
+    
+                $fullname = ucwords($message[0]['fullname']);
+    
+                $mes[] = array(
+                    'room_id' => $message['m']['room_id'],
+                    'user_id' => $message['u']['user_id'],
+                    'fullname' => $fullname,
+                    'profile' => $message['u']['profile'],
+                    'content' => $message[0]['content'],
+                    'created' => $created_ago,
+                    'count' => $message[0]['countunread'],
+                );
+    
             }
+    
+            $response = [
+                'status' => 200,
+                'result' => $mes,
+                'websocket' => $this->websocketdata(),
+                'latest_chat' => $this->latest_chat($user['id']),
+                'success' => true,
+                'pagination' => array(
+                    'limit' => (int)$limit,
+                    'total' => count($totalItems),
+                )
+            ];
 
-            $this->response->statusCode($response['status']);
-            return $this->response->body(json_encode($response));
+        }else{
+            $response = [
+                'status' => 403,
+                'message' => "Message not found",
+                'success' => false,
+            ];
+        }
+
+        $this->response->statusCode($response['status']);
+        return $this->response->body(json_encode($response));
     }
 
     public function sendmessage() {
@@ -118,6 +117,11 @@ class MessageController extends ApiController {
                             'result' => json_decode($this->index()),
                             'success' => true,
                         ];
+
+                        $this->sendWebSocketMessage([
+                            'action' => 'new_message',
+                            'data' => $param
+                        ]);
                     } else {
                         $response = [
                             'status' => 400,
@@ -147,6 +151,11 @@ class MessageController extends ApiController {
                                 'result' => json_decode($this->index()),
                                 'success' => true,
                             ];
+
+                            $this->sendWebSocketMessage([
+                                'action' => 'new_message',
+                                'data' => $param
+                            ]);
                         } else {
                             $response = [
                                 'status' => 400,
@@ -222,8 +231,15 @@ class MessageController extends ApiController {
                     $response = [
                         'status' => 201,
                         'result' => json_decode($this->index()),
+                        'user_id' => $user['id'],
                         'success' => true,
                     ];
+
+                    $this->sendWebSocketMessage([
+                        'action' => 'reply_message',
+                        'data' => $param
+                    ]);
+
                 } else {
                     $response = [
                         'status' => 400,
@@ -324,7 +340,9 @@ class MessageController extends ApiController {
 
     protected function conversation($id, $room_id){
         $sql = "
-        SELECT IF(m.sender_id = {$id}, s.`profile`, NULL) AS me_profile,
+        SELECT 
+            IF(m.sender_id = {$id}, s.id, r.id) AS user_id,
+            IF(m.sender_id = {$id}, s.`profile`, NULL) AS me_profile,
             IF(m.sender_id = {$id}, m.content, NULL) AS me,
             IF(m.receiver_id = {$id}, r.`profile`, NULL) AS you_profile,
             IF(m.receiver_id = {$id}, m.content, NULL) AS you, m.created, m.id
@@ -343,6 +361,7 @@ class MessageController extends ApiController {
             $created_ago = $TimeHelper->timeAgo($created_timestamp);
 
             $convo[] = array(
+                'user_id' => $chat[0]['user_id'],
                 'me_profile' => $chat[0]['me_profile'],
                 'me' => $chat[0]['me'],
                 'you_profile' => $chat[0]['you_profile'],
@@ -365,5 +384,78 @@ class MessageController extends ApiController {
         );
 
         return $data;
+    }
+
+    protected function websocketdata(){
+
+        $user = $this->Session->read('Auth.User');
+
+        $sql = "
+        SELECT u.id as user_id, 
+                m.room_id, 
+                u.profile, CONCAT(u.fname,' ',u.lname) as fullname, 
+                IF(m.sender_id = {$user['id']}, m.content, CONCAT('me: ','', m.content)) as content, 
+	            IF(m.receiver_id = {$user['id']}, 0, count(status)) as countunread, 
+                m.created
+        FROM messages m left join users u on IF(m.sender_id = {$user['id']}, m.receiver_id, m.sender_id) = u.id
+        WHERE (sender_id = {$user['id']} OR receiver_id = {$user['id']}) GROUP BY m.room_id ORDER BY m.created DESC";
+
+        $messages = $this->Message->query($sql);
+
+        if($messages){
+
+            // $total = "select room_id from messages where sender_id = {$user['id']} OR receiver_id = {$user['id']} group by room_id";
+            // $totalItems = $this->Message->query($total);
+
+            $mes = [];
+            foreach($messages as $message){
+
+                $TimeHelper = new TimeHelper(new View());
+                $created_timestamp = strtotime($message['m']['created']);
+                $created_ago = $TimeHelper->timeAgo($created_timestamp);
+    
+                $fullname = ucwords($message[0]['fullname']);
+    
+                $mes[] = array(
+                    'room_id' => $message['m']['room_id'],
+                    'user_id' => $message['u']['user_id'],
+                    'fullname' => $fullname,
+                    'profile' => $message['u']['profile'],
+                    'content' => $message[0]['content'],
+                    'created' => $created_ago,
+                    'count' => $message[0]['countunread'],
+                );
+    
+            }
+            return $mes;
+        }
+    }
+
+    private function sendWebSocketMessage($msg) {
+        $url = 'http://localhost:8080';
+        $jsonData = json_encode($msg);
+    
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $jsonData);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($jsonData))
+        );
+    
+        try {
+            $response = curl_exec($curl);
+            if ($response === false) {
+                throw new Exception(curl_error($curl), curl_errno($curl));
+            }
+    
+            // Optionally, you can handle the response if you need to.
+    
+        } catch (Exception $e) {
+            echo 'Failed to send WebSocket message: ' . $e->getMessage();
+        } finally {
+            curl_close($curl);
+        }
     }
 }

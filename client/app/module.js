@@ -322,30 +322,29 @@ app.directive("select2", function () {
     };
 });
 
-app.service('spinnerService', function() {
-    var spinnerVisible = false;
+app.factory('WebSocketService', function($rootScope) {
+    var ws;
 
     return {
-        show: function() {
-            spinnerVisible = true;
+        connect: function() {
+            ws = new WebSocket('ws://localhost:8080'); // Update the URL if necessary
+            ws.onmessage = function(event) {
+                $rootScope.$apply(function() {
+                    $rootScope.$broadcast('socket:message', event.data);
+                });
+            };
+            ws.onopen = function() {
+                console.log('WebSocket connection opened');
+            };
+            ws.onclose = function() {
+                console.log('WebSocket connection closed');
+            };
+            ws.onerror = function(error) {
+                console.log('WebSocket error: ' + error);
+            };
         },
-        hide: function() {
-            spinnerVisible = false;
-        },
-        isVisible: function() {
-            return spinnerVisible;
+        send: function(message) {
+            ws.send(message);
         }
     };
 });
-
-app.directive('spinner', ['spinnerService', function(spinnerService) {
-    return {
-        restrict: 'E',
-        template: '<div class="spinner" ng-show="isSpinnerVisible()">Loading...</div>',
-        link: function(scope) {
-            scope.isSpinnerVisible = function() {
-                return spinnerService.isVisible();
-            };
-        }
-    };
-}]);
