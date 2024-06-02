@@ -60,7 +60,7 @@
                                         <div class="input-group rounded mb-3">
                                            <input type="search" class="form-control rounded" ng-model="search_name" placeholder="Search"
                                                 aria-label="Search" aria-describedby="search-addon" />
-                                            <a href="" class="input-group-text border-0" id="search-addon" ng-click="messageConvo()">
+                                            <a href="" class="input-group-text border-0" id="search-addon" ng-click="searchConvo()">
                                                 <i class="fas fa-search"></i>
                                             </a>
                                         </div>
@@ -98,9 +98,43 @@
                                 <!-- <div class="col-md-6 col-lg-7 col-xl-8" ng-include="messageTemplate"> -->
                                 <div class="col-md-6 col-lg-7 col-xl-8">
                                     <div id="chatbox" ng-if="chatbox">
-                                        <div class="pt-3 pe-3" perfect-scrollbar-bottom style="position: relative; height: 400px">
+                                        <div ng-if="!loadMoreActive" class="pt-3 pe-3" perfect-scrollbar-bottom style="position: relative; height: 400px">
+                                            <div class="text-center" ng-if="totalconvo > 10"> <a href="" ng-click="loadMoreConvos()"> Show More </a> </div>
+                                            <div ng-repeat="convo in chatroom | orderBy:'id'">
+                                                <div class="d-flex flex-row justify-content-start" ng-if="convo.you !== null">
+                                                    <img ng-src="{{ '../../onboarding/server/app/webroot/img/profile/' + convo.you_profile }}" alt="avatar 1" 
+                                                        class="rounded-circle" style="width: 45px; height: 100%;">
+                                                    <div>
+                                                        <p class="small p-2 ms-3 mb-1 rounded-3" style="background-color: #f5f6f7;">{{ convo.you }}</p>
+                                                        <p class="small ms-3 mb-3 float-start rounded-3 text-muted">{{ convo.created }}</p>
+                                                    </div>
+                                                </div>
+                                            
+                                                <div class="d-flex flex-row justify-content-end" ng-if="convo.me !== null">
+                                                    <div>
+                                                        <div class="col-auto d-flex align-items-center" style="cursor: pointer;">
+                                                            <div class="dropdown">
+                                                                <span class="p-2 me-2 d-flex align-items-center justify-content-center hover-visible" 
+                                                                    id="dropdownMenuButton" data-mdb-toggle="dropdown" aria-expanded="false">
+                                                                  <i class="fas fa-ellipsis-v"></i>
+                                                                </span>
+                                                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                                                  <li><a class="dropdown-item" href="" ng-click="removeMessage(convo)">Remove</a></li>
+                                                                </ul>
+                                                              </div>
+                                                            <p class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">{{ convo.me }}</p>
+                                                        </div>
+                                                        <p class="small me-3 mb-3 float-end rounded-3 text-muted">{{ convo.created }}</p>
+                                                    </div>
+                                                    <img ng-src="{{ '../../onboarding/server/app/webroot/img/profile/' + convo.me_profile }}" alt="avatar"
+                                                        class="rounded-circle" style="width: 45px; height: 100%;">
+                                                </div>
+                                            </div>
                                     
-                                            <div ng-repeat="convo in chatroom">
+                                        </div>
+                                        <div ng-if="loadMoreActive" class="pt-3 pe-3" perfect-scrollbar-top style="position: relative; height: 400px">
+                                            <div class="text-center" ng-if="totalconvo > 10"> <a href="" ng-click="loadMoreConvos()"> Show More </a> </div>
+                                            <div ng-repeat="convo in chatroom | orderBy:'id'">
                                                 <div class="d-flex flex-row justify-content-start" ng-if="convo.you !== null">
                                                     <img ng-src="{{ '../../onboarding/server/app/webroot/img/profile/' + convo.you_profile }}" alt="avatar 1" 
                                                         class="rounded-circle" style="width: 45px; height: 100%;">

@@ -15,15 +15,19 @@ class MessageController extends ApiController {
 
         $limit = $param['pagination']['limit'];
         $search = "";
+        $_SESSION['limit'] = $limit;
 
         if( !empty( $param['search'] ) ){ $search=" AND (u.fname LIKE '%". $param['search'] ."%' OR u.lname LIKE '%". $param['search'] ."%') "; }
 
         $sql = "
-        SELECT u.id as user_id, m.room_id, u.profile, CONCAT(u.fname,' ',u.lname) as fullname, 
-            IF(m.sender_id = {$user['id']}, CONCAT('me: ','', m.content), m.content) as content, 
-            IF(m.receiver_id = {$user['id']}, count(status), 0) as countunread, m.created
-        FROM messages m left join users u on IF(m.sender_id = {$user['id']}, m.receiver_id, m.sender_id) = u.id
-        WHERE (sender_id = {$user['id']} OR receiver_id = {$user['id']}) {$search} GROUP BY m.room_id ORDER BY m.created DESC LIMIT {$limit}";
+        SELECT u.id AS user_id, m.room_id, u.profile, CONCAT(u.fname,' ',u.lname) AS fullname, 
+            IF(m.sender_id = {$user['id']}, CONCAT('me: ','', m.content), m.content) AS content, 
+            (SELECT COUNT(`status`) AS `status` FROM messages WHERE room_id = c.`room_id` AND receiver_id = {$user['id']} AND `status` = 0) AS countunread,
+            m.created AS created
+        FROM conversations c 
+            LEFT JOIN messages m ON c.`latest_message_id` = m.`id`
+            LEFT JOIN users u ON IF(m.`sender_id` = {$user['id']}, m.`receiver_id`, m.`sender_id`) = u.`id`
+        WHERE (sender_id = {$user['id']} OR receiver_id = {$user['id']}) {$search} ORDER BY m.`created` DESC LIMIT {$limit}";
 
         $messages = $this->Message->query($sql);
 
@@ -76,6 +80,8 @@ class MessageController extends ApiController {
         return $this->response->body(json_encode($response));
     }
 
+    // public function notification() {}
+
     public function sendmessage() {
         $param = $this->request->input('json_decode', true);
         $user = $this->Session->read('Auth.User');
@@ -110,8 +116,8 @@ class MessageController extends ApiController {
                         $conversation['Conversation']['latest_message_id'] = $lastid;
                         $this->Conversation->save($conversation);
 
-                        $modifiedUpdate = "UPDATE conversations SET modified = NOW() WHERE room_id = {$param['room_id']}";
-                        $this->Message->query($modifiedUpdate);
+                        $statusUpdate = "UPDATE messages SET status = 1 WHERE room_id = {$param['room_id']} AND status = 0 AND sender_id = {$param['receiver_id']}";
+                        $this->Message->query($statusUpdate);
 
                         $response = [
                             'status' => 201,
@@ -149,7 +155,7 @@ class MessageController extends ApiController {
                         if ($this->Conversation->save($convo)) {
                             $response = [
                                 'status' => 201,
-                                'websocket' => $this->websocketdata($param['receiver_id']),
+                                // 'websocket' => $this->websocketdata($param['receiver_id']),
                                 'result' => json_decode($this->index()),
                                 'success' => true,
                             ];
@@ -200,6 +206,7 @@ class MessageController extends ApiController {
 
         $response = [
             'status' => 200,
+            'convo' => $this->conversation($user['id'], $param['id'], $param['pagination']['limit']),
             'result' => json_decode($this->index()),
             'success' => true,
         ];
@@ -226,6 +233,9 @@ class MessageController extends ApiController {
 
                     $statusUpdate = "UPDATE messages SET status = 1 WHERE room_id = {$param['room_id']} AND status = 0 AND sender_id = {$param['receiver_id']}";
                     $this->Message->query($statusUpdate);
+
+                    $modifiedUpdate = "UPDATE conversations SET modified = NOW() WHERE room_id = {$param['room_id']}";
+                    $this->Message->query($modifiedUpdate);
 
                     $conversation['Conversation']['latest_message_id'] = $lastid;
                     $this->Conversation->save($conversation);
@@ -283,6 +293,11 @@ class MessageController extends ApiController {
                         'result' => json_decode($this->index()),
                         'success' => true,
                     ];
+
+                    $this->sendWebSocketMessage([
+                        'action' => 'remove_message',
+                        'data' => $param
+                    ]);
                 } else {
                     $response = [
                         'status' => 403,
@@ -305,7 +320,7 @@ class MessageController extends ApiController {
 
     protected function latest_chat($id){
 
-        $modified = $this->Message->find('first', [
+        $modified = $this->Conversation->find('first', [
             'conditions' => array(
                 'OR' => [
                     ['Message.sender_id' => $id],
@@ -314,11 +329,11 @@ class MessageController extends ApiController {
             ),
             'joins' => [
                 [
-                    'table' => 'conversations',
-                    'alias' => 'Conversation',
+                    'table' => 'messages',
+                    'alias' => 'Message',
                     'type' => 'LEFT',
                     'conditions' => [
-                        'Conversation.room_id = Message.room_id'
+                        'Message.room_id = Conversation.room_id'
                     ]
                 ]
             ],
@@ -326,22 +341,23 @@ class MessageController extends ApiController {
                 'Message.room_id',
             ],
             'order' => ['Conversation.modified' => 'DESC'],
-            'group' => ['Message.room_id'],
             'recursive' => -1
         ]);
 
-        $convo = $this->conversation($id, $modified['Message']['room_id']);
+        $convo = $this->conversation($id, $modified['Message']['room_id'], 10);
 
         $response = [
             'result' => $convo,
             'receiver_id' => $convo['receiver_id'],
             'room_id' => $modified['Message']['room_id'],
+            'websocket' => $this->websocketdata($convo['receiver_id'], $modified['Message']['room_id']),
         ];
         
         return $response;
     }
 
-    protected function conversation($id, $room_id){
+    protected function conversation($id, $room_id, $limit){
+
         $sql = "
         SELECT 
             IF(m.sender_id = {$id}, s.id, r.id) AS user_id,
@@ -352,7 +368,7 @@ class MessageController extends ApiController {
         FROM messages m 
             LEFT JOIN users s ON m.`sender_id` = s.`id` 
             LEFT JOIN users r ON m.`sender_id` = r.`id`
-        WHERE m.room_id = {$room_id}";
+        WHERE m.room_id = {$room_id} ORDER BY m.created DESC LIMIT {$limit}";
 
         $chatroom = $this->Message->query($sql);
 
@@ -381,33 +397,35 @@ class MessageController extends ApiController {
             WHERE m.room_id = {$room_id} AND (m.sender_id = {$id} OR m.receiver_id = {$id}) GROUP BY m.receiver_id";
         $receiver_id = $this->Message->query($sql1);
 
+        $total = "select COUNT(*) AS countconvo from messages m where m.room_id = {$room_id} ORDER BY m.`id` DESC";
+        $totalItems = $this->Message->query($total);
+
         $data = array(
             'data' => $convo,
             'receiver_id' => $receiver_id[0][0]['receiver'],
+            'total' => $totalItems[0][0]['countconvo']
         );
 
         return $data;
     }
 
-    protected function websocketdata($receiver){
+    protected function websocketdata($receiver, $room_id){
         $sql = "
-        SELECT u.id as user_id, 
-            m.room_id, 
-            u.profile, CONCAT(u.fname,' ',u.lname) as fullname, 
-            IF(m.sender_id = {$receiver}, CONCAT('me: ','', m.content), m.content) as content, 
-            IF(m.receiver_id = {$receiver}, count(status), 0) as countunread, 
-            m.created
-        FROM messages m left join users u on IF(m.sender_id = {$receiver}, m.receiver_id, m.sender_id) = u.id
-        WHERE (sender_id = {$receiver} OR receiver_id = {$receiver}) GROUP BY m.room_id ORDER BY max(m.created) DESC";
+        SELECT u.id AS user_id, m.room_id, u.profile, CONCAT(u.fname,' ',u.lname) AS fullname, 
+            IF(m.sender_id = {$receiver}, CONCAT('me: ','', m.content), m.content) AS content, 
+            (SELECT COUNT(`status`) AS `status` FROM messages WHERE room_id = c.`room_id` AND receiver_id = {$receiver} AND `status` = 0) AS countunread,
+            m.created AS created
+        FROM conversations c 
+            LEFT JOIN messages m ON c.`latest_message_id` = m.`id`
+            LEFT JOIN users u ON IF(m.`sender_id` = {$receiver}, m.`receiver_id`, m.`sender_id`) = u.`id`
+        WHERE (sender_id = {$receiver} OR receiver_id = {$receiver}) ORDER BY m.`created` DESC LIMIT {$_SESSION['limit']}";
 
         $messages = $this->Message->query($sql);
 
+        $mes = [];
         if($messages){
-
             // $total = "select room_id from messages where sender_id = {$user['id']} OR receiver_id = {$user['id']} group by room_id";
-            // $totalItems = $this->Message->query($total);
-
-            $mes = [];
+            // $totalItems = $this->Message->query($total);            
             foreach($messages as $message){
 
                 $TimeHelper = new TimeHelper(new View());
@@ -427,8 +445,47 @@ class MessageController extends ApiController {
                 );
     
             }
-            return $mes;
         }
+
+        $sql_chat = "
+        SELECT 
+            IF(m.sender_id = {$receiver}, s.id, r.id) AS user_id,
+            IF(m.sender_id = {$receiver}, s.`profile`, NULL) AS me_profile,
+            IF(m.sender_id = {$receiver}, m.content, NULL) AS me,
+            IF(m.receiver_id = {$receiver}, r.`profile`, NULL) AS you_profile,
+            IF(m.receiver_id = {$receiver}, m.content, NULL) AS you, m.created, m.id
+        FROM messages m 
+            LEFT JOIN users s ON m.`sender_id` = s.`id` 
+            LEFT JOIN users r ON m.`sender_id` = r.`id`
+        WHERE m.room_id = {$room_id}";
+        $chatroom = $this->Message->query($sql_chat);
+
+        $convo = [];
+        foreach($chatroom as $chat){
+
+            $TimeHelper = new TimeHelper(new View());
+            $created_timestamp = strtotime($chat['m']['created']);
+            $created_ago = $TimeHelper->timeAgo($created_timestamp);
+
+            $convo[] = array(
+                'user_id' => $chat[0]['user_id'],
+                'me_profile' => $chat[0]['me_profile'],
+                'me' => $chat[0]['me'],
+                'you_profile' => $chat[0]['you_profile'],
+                'you' => $chat[0]['you'],
+                'created' => $created_ago,
+                'id' => $chat['m']['id'],
+                'room_id' => $room_id
+            );
+        }
+
+        $data = array(
+            'message' => $mes,
+            'chatbox' => $convo,
+            'room_id' => $room_id,
+        );
+
+        return $data;
     }
 
     private function sendWebSocketMessage($msg) {
