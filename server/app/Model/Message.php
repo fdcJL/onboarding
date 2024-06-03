@@ -24,10 +24,24 @@ class Message extends Model {
         )
     );
 
-    public $hasMany = [
-        'LatestMessage' => [
-            'className' => 'Conversation',
-            'foreignKey' => 'latest_message_id'
-        ],
-    ];
+    public function beforeSave($options = array()) {
+        if (!$this->id && isset($_SERVER['SERVER_NAME'])) {
+            $this->data[$this->alias]['created_ip'] = $this->getIPv4Address($_SERVER['SERVER_NAME']);
+        }
+    
+        if (isset($_SERVER['SERVER_NAME'])) {
+            $this->data[$this->alias]['modified_ip'] = $this->getIPv4Address($_SERVER['SERVER_NAME']);
+        }
+    
+        return true;
+    }
+    
+    private function getIPv4Address($host) {
+        $ip = gethostbyname($host);
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return $ip;
+        } else {
+            return '';
+        }
+    }
 }
