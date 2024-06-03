@@ -70,6 +70,8 @@ CREATE TABLE `messages` (
   `status` int DEFAULT '0' COMMENT '1 = read and 0 = unread',
   `created` datetime DEFAULT NULL,
   `modified` datetime DEFAULT NULL,
+  `created_ip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `modified_ip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `FK_room_id` (`room_id`),
   KEY `FK_sender_id` (`sender_id`),
