@@ -52,24 +52,28 @@ class User extends Model {
         ),
         'bdate' => array(
             'valid' => array(
-                'message' => 'Birdate is Required!',
+                'rule' => 'notBlank',
+                'message' => 'Birthdate is Required!',
                 'allowEmpty' => true,
             )
         ),
         'gender' => array(
             'valid' => array(
+                'rule' => 'notBlank',
                 'message' => 'Gender is Required!',
                 'allowEmpty' => true,
             )
         ),
         'position' => array(
             'valid' => array(
+                'rule' => 'notBlank',
                 'message' => 'Position is Required!',
                 'allowEmpty' => true,
             )
         ),
         'hubby' => array(
             'valid' => array(
+                'rule' => 'notBlank',
                 'message' => 'Hubby is Required!',
                 'allowEmpty' => true,
             )
