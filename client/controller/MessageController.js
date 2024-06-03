@@ -158,6 +158,7 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             'receiver_id':$scope.receiverid,
             'content': reply,
             'pagination' : $scope.pagination,
+            'search' : $scope.search_name,
         };
         $http.post(apiUrl+'message/reply', urlData).then(function (res) {
             var data = res.data;
