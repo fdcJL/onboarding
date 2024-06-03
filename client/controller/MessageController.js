@@ -125,6 +125,7 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             'id': data['room_id'],
             'pagination' : $scope.pagination,
             'limit_convo' : $scope.limit_convo,
+            'search' : $scope.search_name,
         };
         $http.post(apiUrl+'message/chatroom', urlData).then(function (res) {
             var data = res.data
