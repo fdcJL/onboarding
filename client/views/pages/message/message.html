@@ -78,7 +78,7 @@
                                                             </div>
                                                             <div class="pt-1">
                                                                 <p class="fw-bold mb-0">{{ data.fullname }}</p>
-                                                                <p class="small text-muted">{{ data.content }}</p>
+                                                                <p class="small text-muted" simple-truncate="data.content" max-char="20"></p>
                                                             </div>
                                                         </div>
                                                         <div class="pt-1">
@@ -99,8 +99,8 @@
                                 <div class="col-md-6 col-lg-7 col-xl-8">
                                     <div id="chatbox" ng-if="chatbox">
                                         <div ng-if="!loadMoreActive" class="pt-3 pe-3" perfect-scrollbar-bottom style="position: relative; height: 400px">
-                                            <div class="text-center" ng-if="totalconvo > 10"> <a href="" ng-click="loadMoreConvos()"> Show More </a> </div>
-                                            <div ng-repeat="convo in chatroom | orderBy:'id'">
+                                            <div class="text-center" ng-if="totalconvo > limit_convo"> <a href="" ng-click="loadMoreConvos()"> Show More </a> </div>
+                                            <div ng-repeat="convo in chatroom">
                                                 <div class="d-flex flex-row justify-content-start" ng-if="convo.you !== null">
                                                     <img ng-src="{{ '../../onboarding/server/app/webroot/img/profile/' + convo.you_profile }}" alt="avatar 1" 
                                                         class="rounded-circle" style="width: 45px; height: 100%;">
@@ -122,7 +122,7 @@
                                                                   <li><a class="dropdown-item" href="" ng-click="removeMessage(convo)">Remove</a></li>
                                                                 </ul>
                                                               </div>
-                                                            <p class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">{{ convo.me }}</p>
+                                                            <p class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary" my-read-more="convo.me" max-char="100"></p>
                                                         </div>
                                                         <p class="small me-3 mb-3 float-end rounded-3 text-muted">{{ convo.created }}</p>
                                                     </div>
@@ -133,8 +133,8 @@
                                     
                                         </div>
                                         <div ng-if="loadMoreActive" class="pt-3 pe-3" perfect-scrollbar-top style="position: relative; height: 400px">
-                                            <div class="text-center" ng-if="totalconvo > 10"> <a href="" ng-click="loadMoreConvos()"> Show More </a> </div>
-                                            <div ng-repeat="convo in chatroom | orderBy:'id'">
+                                            <div class="text-center" ng-if="totalconvo > 10 && totalconvo > limit_convo"> <a href="" ng-click="loadMoreConvos()"> Show More </a> </div>
+                                            <div ng-repeat="convo in chatroom">
                                                 <div class="d-flex flex-row justify-content-start" ng-if="convo.you !== null">
                                                     <img ng-src="{{ '../../onboarding/server/app/webroot/img/profile/' + convo.you_profile }}" alt="avatar 1" 
                                                         class="rounded-circle" style="width: 45px; height: 100%;">
@@ -189,10 +189,12 @@
                                                             {{ users.fullname }}
                                                         </option>
                                                     </select>
+                                                    <small class="text-danger">{{ submitErrors.recipient }}</small>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="small mb-1">Message</label>
                                                     <textarea class="form-control rounded-0" ng-model="send.message" id="defaultForm-message" rows="5" placeholder="Message"></textarea>
+                                                    <small class="text-danger">{{ submitErrors.message }}</small>
                                                 </div>
                                             </div>
                                             <!-- <button type="submit" class="btn btn-info btn-block my-4">Send Message</button> -->

@@ -206,7 +206,7 @@ class MessageController extends ApiController {
 
         $response = [
             'status' => 200,
-            'convo' => $this->conversation($user['id'], $param['id'], $param['pagination']['limit']),
+            'convo' => $this->conversation($user['id'], $param['id'], $param['limit_convo']),
             'result' => json_decode($this->index()),
             'success' => true,
         ];
@@ -358,17 +358,24 @@ class MessageController extends ApiController {
 
     protected function conversation($id, $room_id, $limit){
 
+        $_SESSION['limit_convo'] = $limit;
         $sql = "
-        SELECT 
-            IF(m.sender_id = {$id}, s.id, r.id) AS user_id,
-            IF(m.sender_id = {$id}, s.`profile`, NULL) AS me_profile,
-            IF(m.sender_id = {$id}, m.content, NULL) AS me,
-            IF(m.receiver_id = {$id}, r.`profile`, NULL) AS you_profile,
-            IF(m.receiver_id = {$id}, m.content, NULL) AS you, m.created, m.id
-        FROM messages m 
-            LEFT JOIN users s ON m.`sender_id` = s.`id` 
-            LEFT JOIN users r ON m.`sender_id` = r.`id`
-        WHERE m.room_id = {$room_id} ORDER BY m.created DESC LIMIT {$limit}";
+        SELECT user_id, me_profile,me,you_profile,you,created,id
+        FROM (
+            SELECT 
+                IF(m.sender_id = {$id}, s.id, r.id) AS user_id,
+                IF(m.sender_id = {$id}, r.`profile`, NULL) AS me_profile,
+                IF(m.sender_id = {$id}, m.content, NULL) AS me,
+                IF(m.receiver_id = {$id}, s.`profile`, NULL) AS you_profile,
+                IF(m.receiver_id = {$id}, m.content, NULL) AS you,
+                m.created,
+                m.id
+            FROM messages m 
+                LEFT JOIN users s ON m.`sender_id` = s.`id` 
+                LEFT JOIN users r ON m.`sender_id` = r.`id`
+            WHERE m.room_id = {$room_id} ORDER BY m.created DESC LIMIT {$limit}
+        ) sub
+        ORDER BY created ASC";
 
         $chatroom = $this->Message->query($sql);
 
@@ -376,17 +383,17 @@ class MessageController extends ApiController {
         foreach($chatroom as $chat){
 
             $TimeHelper = new TimeHelper(new View());
-            $created_timestamp = strtotime($chat['m']['created']);
+            $created_timestamp = strtotime($chat['sub']['created']);
             $created_ago = $TimeHelper->timeAgo($created_timestamp);
 
             $convo[] = array(
-                'user_id' => $chat[0]['user_id'],
-                'me_profile' => $chat[0]['me_profile'],
-                'me' => $chat[0]['me'],
-                'you_profile' => $chat[0]['you_profile'],
-                'you' => $chat[0]['you'],
+                'user_id' => $chat['sub']['user_id'],
+                'me_profile' => $chat['sub']['me_profile'],
+                'me' => $chat['sub']['me'],
+                'you_profile' => $chat['sub']['you_profile'],
+                'you' => $chat['sub']['you'],
                 'created' => $created_ago,
-                'id' => $chat['m']['id'],
+                'id' => $chat['sub']['id'],
                 'room_id' => $room_id
             );
         }
@@ -448,33 +455,39 @@ class MessageController extends ApiController {
         }
 
         $sql_chat = "
-        SELECT 
-            IF(m.sender_id = {$receiver}, s.id, r.id) AS user_id,
-            IF(m.sender_id = {$receiver}, s.`profile`, NULL) AS me_profile,
-            IF(m.sender_id = {$receiver}, m.content, NULL) AS me,
-            IF(m.receiver_id = {$receiver}, r.`profile`, NULL) AS you_profile,
-            IF(m.receiver_id = {$receiver}, m.content, NULL) AS you, m.created, m.id
-        FROM messages m 
-            LEFT JOIN users s ON m.`sender_id` = s.`id` 
-            LEFT JOIN users r ON m.`sender_id` = r.`id`
-        WHERE m.room_id = {$room_id}";
+        SELECT user_id, me_profile,me,you_profile,you,created,id
+        FROM (
+            SELECT 
+                IF(m.sender_id = {$receiver}, s.id, r.id) AS user_id,
+                IF(m.sender_id = {$receiver}, r.`profile`, NULL) AS me_profile,
+                IF(m.sender_id = {$receiver}, m.content, NULL) AS me,
+                IF(m.receiver_id = {$receiver}, s.`profile`, NULL) AS you_profile,
+                IF(m.receiver_id = {$receiver}, m.content, NULL) AS you,
+                m.created,
+                m.id
+            FROM messages m 
+                LEFT JOIN users s ON m.`sender_id` = s.`id` 
+                LEFT JOIN users r ON m.`sender_id` = r.`id`
+            WHERE m.room_id = {$room_id} ORDER BY m.created DESC LIMIT {$_SESSION['limit_convo']}
+        ) sub
+        ORDER BY created ASC";
         $chatroom = $this->Message->query($sql_chat);
 
         $convo = [];
         foreach($chatroom as $chat){
 
             $TimeHelper = new TimeHelper(new View());
-            $created_timestamp = strtotime($chat['m']['created']);
+            $created_timestamp = strtotime($chat['sub']['created']);
             $created_ago = $TimeHelper->timeAgo($created_timestamp);
 
             $convo[] = array(
-                'user_id' => $chat[0]['user_id'],
-                'me_profile' => $chat[0]['me_profile'],
-                'me' => $chat[0]['me'],
-                'you_profile' => $chat[0]['you_profile'],
-                'you' => $chat[0]['you'],
+                'user_id' => $chat['sub']['user_id'],
+                'me_profile' => $chat['sub']['me_profile'],
+                'me' => $chat['sub']['me'],
+                'you_profile' => $chat['sub']['you_profile'],
+                'you' => $chat['sub']['you'],
                 'created' => $created_ago,
-                'id' => $chat['m']['id'],
+                'id' => $chat['sub']['id'],
                 'room_id' => $room_id
             );
         }

@@ -129,6 +129,21 @@ app.service('AuthService', ['$http', '$q', '$rootScope', '$window', '$location',
 
 }]);
 
+app.service('SettingsService', function($http, $q) {
+    var settingsData = null;
+
+    this.getSettings = function() {
+        if (settingsData) {
+            return $q.resolve(settingsData);
+        } else {
+            return $http.get(apiUrl+'settings').then(function(res) {
+                settingsData = res.data;
+                return settingsData;
+            });
+        }
+    };
+});
+
 app.factory('httpInterceptor', ['$q', '$location', '$window', function($q, $location, $window) {
     return {
         request: function(config) {
@@ -246,7 +261,6 @@ app.directive('perfectScrollbarTop', function($timeout) {
     };
 });
 
-
 app.directive('perfectScrollbarBottom', function($timeout) {
     return {
         restrict: 'A',
@@ -321,6 +335,64 @@ app.directive("select2", function () {
         }
     };
 });
+
+app.factory('ChatCache', function() {
+    var cache = {};
+
+    return {
+        getConvo: function(roomId) {
+            return cache[roomId];
+        },
+        setConvo: function(roomId, convoData) {
+            cache[roomId] = convoData;
+        },
+        clearConvo: function(roomId) {
+            delete cache[roomId];
+        }
+    };
+});
+
+app.directive('simpleTruncate', function() {
+    return {
+      restrict: 'A',
+      scope: {
+        text: '=simpleTruncate',
+        maxLength: '@maxChar'
+      },
+      template: '<div>{{displayText}}</div>',
+      link: function(scope, element, attrs) {
+        scope.displayText = scope.text.length > scope.maxLength 
+          ? scope.text.substring(0, scope.maxLength) + '.......' 
+          : scope.text;
+      }
+    };
+  });
+
+app.directive('myReadMore', function() {
+    return {
+      restrict: 'A',
+      scope: {
+        text: '=myReadMore',
+        maxLength: '@maxChar'
+      },
+      template: '<div>{{displayText}} <a href="" ng-click="toggleReadMore()" ng-show="showToggle">{{isReadMore ? "See More" : "See Less"}}</a></div>',
+      link: function(scope, element, attrs) {
+        scope.isReadMore = true;
+        scope.showToggle = scope.text.length > scope.maxLength;
+  
+        scope.displayText = scope.text.substring(0, scope.maxLength) + (scope.text.length > scope.maxLength ? '.....' : '');
+  
+        scope.toggleReadMore = function() {
+          scope.isReadMore = !scope.isReadMore;
+          if (scope.isReadMore) {
+            scope.displayText = scope.text.substring(0, scope.maxLength) + (scope.text.length > scope.maxLength ? '.....' : '');
+          } else {
+            scope.displayText = scope.text;
+          }
+        };
+      }
+    };
+  });
 
 app.factory('WebSocketService', function($rootScope) {
     var ws;

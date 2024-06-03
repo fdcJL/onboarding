@@ -1,33 +1,34 @@
-app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location', '$window', '$timeout', 'AuthService', 'WebSocketService', function($scope, $rootScope, $http, $location, $window, $timeout, AuthService, WebSocketService){
+app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location', '$window', '$timeout', 'AuthService', 'WebSocketService', 'ChatCache', 'SettingsService', function($scope, $rootScope, $http, $location, $window, $timeout, AuthService, WebSocketService, ChatCache, SettingsService){
     $scope.templateUrl = 'views/layout/PagesLayout.html';
 
     WebSocketService.connect();
 
     $scope.messageComponents = function(template, data){
         if(template == 'chatbox'){
+            $scope.limit_convo = 10;
             $scope.loadMoreActive = false;
-            $scope.pagination = {
-                limit: 10
-            };
             $scope.chatbox = true;
             $scope.sendmessage = false;
-            $scope.roomConvo(data);
+            $scope.roomConvo(data, false);
         }else{
             $scope.chatbox = false;
             $scope.sendmessage = true;
+            $scope.submitErrors = '';
         }
     }
 
-    $scope.settings = function(){
-        $http.get(apiUrl+'settings').then(function (res) {
-            var data = res.data;
-            $scope.allusers = data.users;
-        });
-    }
-    $scope.settings();
+    SettingsService.getSettings().then(function(data) {
+        $scope.allusers = data.users;
+    });
 
     $scope.send = {};
     $scope.submitMessage = function(send){
+        const validationErrors = validateSubmitMessage(send);
+        if (validationErrors) {
+            $scope.submitErrors = validationErrors;
+            return;
+        }
+
         var urlData = {
             'receiver_id' : send.recipient,
             'content' : send.message,
@@ -56,6 +57,14 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
         }, function(error){
 
         });
+    }
+
+    // Validation functions
+    function validateSubmitMessage(send) {
+        let errors = {};
+        if (!send.recipient) errors.recipient = 'Recipient is required';
+        if (!send.message) errors.message = 'Message is required';
+        return Object.keys(errors).length ? errors : null;
     }
 
     $scope.pagination = {
@@ -111,25 +120,26 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
     $scope.roomConvo = function(data){
         $scope.roomid = data['room_id'];
         $scope.receiverid = data['user_id'];
+        
         var urlData = {
             'id': data['room_id'],
             'pagination' : $scope.pagination,
-            
+            'limit_convo' : $scope.limit_convo,
         };
         $http.post(apiUrl+'message/chatroom', urlData).then(function (res) {
             var data = res.data
             $scope.chatroom = data.convo.data;
             $scope.message = data.result.result;
             $scope.totalconvo = data.convo.total;
-
-            console.log($scope.totalconvo);
         }, function(error){
 
         });
     }
+
     $scope.loadMoreActive = false;
+    $scope.limit_convo = 10;
     $scope.loadMoreConvos = function(){
-        $scope.pagination.limit += 10;
+        $scope.limit_convo += 10;
 
         var data = {
             'room_id':$scope.roomid,
@@ -154,6 +164,7 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
             $scope.message = data.result.result;
             $scope.roomid = data.result.latest_chat.room_id;
             $scope.receiverid = data.result.latest_chat.receiver_id;
+            $scope.totalconvo = data.result.latest_chat.result.total;
             $scope.chat.reply = '';
 
             WebSocketService.send(JSON.stringify({
@@ -194,6 +205,14 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
 
         });
     }
+
+    $scope.toggleFullText = function(convo) {
+        if (convo.fullTextVisible) {
+            convo.fullTextVisible = false; // Hide full text
+        } else {
+            convo.fullTextVisible = true; // Show full text
+        }
+    };
 
     $scope.$on('socket:message', function(event, data) {
         var message = JSON.parse(data);
