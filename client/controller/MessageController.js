@@ -208,14 +208,6 @@ app.appControl('MessageController',['$scope', '$rootScope', '$http', '$location'
         });
     }
 
-    $scope.toggleFullText = function(convo) {
-        if (convo.fullTextVisible) {
-            convo.fullTextVisible = false; // Hide full text
-        } else {
-            convo.fullTextVisible = true; // Show full text
-        }
-    };
-
     $scope.$on('socket:message', function(event, data) {
         var message = JSON.parse(data);
         $scope.user = $rootScope.user;
